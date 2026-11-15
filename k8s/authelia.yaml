@@ -1,0 +1,183 @@
+# ============================================================================
+# Authelia: portal de autenticación del HPC
+#   · Un solo contenedor (Go), SQLite, sin Redis ni PostgreSQL
+#   · Passkeys (WebAuthn) como primer factor
+#   · Forward-auth para las apps sin login propio (cabecera Remote-User)
+#   · Proveedor OIDC para las que sí lo tienen (Immich)
+#
+# ANTES DE APLICAR: crear el Secret con los tres secretos (ver guía).
+# ============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: auth
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: authelia-datos
+  namespace: auth
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 512Mi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authelia
+  namespace: auth
+data:
+  configuration.yml: |
+    theme: 'auto'
+
+    server:
+      address: 'tcp://0.0.0.0:9091'
+      endpoints:
+        authz:
+          forward-auth:
+            implementation: 'ForwardAuth'
+
+    log:
+      level: 'info'
+
+    # ---------------- usuarios (fichero, un solo usuario) ----------------
+    authentication_backend:
+      password_reset:
+        disable: true            # sin correo configurado; se cambia editando el fichero
+      file:
+        path: '/config/users.yml'
+        watch: true
+        password:
+          algorithm: 'argon2'
+
+    # ---------------- segundo factor / passkeys ----------------
+    totp:
+      issuer: '@@DOMINIO@@'
+
+    webauthn:
+      disable: false
+      enable_passkey_login: true          # entrar directamente con la huella
+      display_name: 'HPC casero'
+      timeout: '60s'
+
+    duo_api:
+      disable: true
+
+    # ---------------- quién puede entrar a qué ----------------
+    access_control:
+      default_policy: 'deny'
+      rules:
+        # el propio portal debe ser accesible sin estar autenticado
+        - domain: 'auth.@@DOMINIO@@'
+          policy: 'bypass'
+        # el escáner de tiquets: exige passkey/2FA por llevar datos financieros
+        - domain: 'tiquetscan.@@DOMINIO@@'
+          policy: 'two_factor'
+        # el resto de servicios internos
+        - domain: '*.@@DOMINIO@@'
+          policy: 'one_factor'
+
+    # ---------------- sesión ----------------
+    session:
+      name: 'authelia_session'
+      same_site: 'lax'
+      expiration: '12h'
+      inactivity: '45m'
+      remember_me: '1M'                    # el móvil no pide identidad cada día
+      cookies:
+        - domain: '@@DOMINIO@@'
+          authelia_url: 'https://auth.@@DOMINIO@@'
+          default_redirection_url: 'https://panel.@@DOMINIO@@'
+
+    regulation:
+      max_retries: 4
+      find_time: '2m'
+      ban_time: '10m'
+
+    storage:
+      local:
+        path: '/data/db.sqlite3'
+
+    notifier:
+      disable_startup_check: false
+      filesystem:
+        filename: '/data/avisos.txt'       # sin correo: los avisos quedan en un fichero
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authelia
+  namespace: auth
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: authelia }
+  template:
+    metadata:
+      labels: { app: authelia }
+    spec:
+      # Kubernetes inyecta variables tipo AUTHELIA_PORT_9091_TCP con el nombre del
+      # Service; Authelia las lee como configuración y choca con server.address.
+      enableServiceLinks: false
+      nodeSelector:
+        kubernetes.io/hostname: pi-master          # siempre en la Pi
+      containers:
+        - name: authelia
+          image: ghcr.io/authelia/authelia:4.39
+          args: ["--config", "/config/configuration.yml"]
+          env:
+            - name: TZ
+              value: Europe/Madrid
+            - name: AUTHELIA_SESSION_SECRET
+              valueFrom: { secretKeyRef: { name: authelia-secretos, key: session } }
+            - name: AUTHELIA_STORAGE_ENCRYPTION_KEY
+              valueFrom: { secretKeyRef: { name: authelia-secretos, key: storage } }
+            - name: AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET
+              valueFrom: { secretKeyRef: { name: authelia-secretos, key: jwt } }
+          ports: [{ containerPort: 9091 }]
+          volumeMounts:
+            - { name: config, mountPath: /config/configuration.yml, subPath: configuration.yml }
+            - { name: usuarios, mountPath: /config/users.yml, subPath: users.yml }
+            - { name: datos, mountPath: /data }
+          readinessProbe:
+            httpGet: { path: /api/health, port: 9091 }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits:   { memory: 256Mi }
+      volumes:
+        - name: config
+          configMap: { name: authelia }
+        - name: usuarios
+          secret: { secretName: authelia-usuarios }
+        - name: datos
+          persistentVolumeClaim: { claimName: authelia-datos }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authelia
+  namespace: auth
+spec:
+  selector: { app: authelia }
+  ports: [{ port: 9091, targetPort: 9091 }]
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: authelia
+  namespace: auth
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`auth.@@DOMINIO@@`)
+      kind: Rule
+      services:
+        - name: authelia
+          port: 9091
+  tls: {}

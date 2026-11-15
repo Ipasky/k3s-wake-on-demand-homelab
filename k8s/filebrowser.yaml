@@ -1,0 +1,93 @@
+# ============================================================================
+# FileBrowser Quantum en Mustang: archivos y documentos del NAS
+#   Archivos: /srv/nas/archivos (HDD), servidos tal cual
+#   Su base de datos y caché: /var/lib/filebrowser-quantum (SSD)
+#   Acceso: Traefik + Authelia → despertador en la Pi (:8082) → NodePort 30081
+#   Inicio de sesión: el del portal. Quantum confía en la cabecera Remote-User,
+#   que Traefik rellena con el usuario de Authelia (sin login propio).
+# Preparar en Mustang (una vez):
+#   sudo mkdir -p /var/lib/filebrowser-quantum
+#   sudo chown 1000:1000 /var/lib/filebrowser-quantum
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebrowser-config
+  namespace: nas
+data:
+  config.yaml: |
+    server:
+      cacheDir: /home/filebrowser/data/tmp
+      sources:
+        - name: archivos
+          path: /folder
+          config:
+            defaultEnabled: true
+    auth:
+      adminUsername: @@USUARIO_AUTHELIA@@       # tu usuario de Authelia es el administrador
+      methods:
+        password:
+          enabled: false                         # solo se entra por el portal
+        proxy:
+          enabled: true
+          header: Remote-User
+    frontend:
+      name: Archivos
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: filebrowser
+  namespace: nas
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: filebrowser }
+  template:
+    metadata:
+      labels: { app: filebrowser }
+    spec:
+      nodeSelector: { node-type: gpu }
+      tolerations:
+        - { key: power, operator: Equal, value: ondemand, effect: NoExecute }
+        - { key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute }
+        - { key: node.kubernetes.io/not-ready,   operator: Exists, effect: NoExecute }
+      securityContext: { runAsUser: 1000, runAsGroup: 1000, fsGroup: 1000 }
+      containers:
+        - name: filebrowser
+          image: docker.io/gtstef/filebrowser:2.0.2-stable     # versión fija, no "latest"
+          env:
+            - { name: FILEBROWSER_CONFIG, value: /config/config.yaml }
+          ports: [{ containerPort: 80 }]
+          readinessProbe:
+            httpGet: { path: /health, port: 80 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - { name: archivos, mountPath: /folder }
+            - { name: datos,    mountPath: /home/filebrowser/data }
+            - { name: config,   mountPath: /config, readOnly: true }
+          resources:
+            requests: { cpu: 50m, memory: 96Mi }
+            limits:   { memory: 512Mi }
+      volumes:
+        - name: archivos
+          hostPath: { path: /srv/nas/archivos, type: Directory }              # HDD
+        - name: datos
+          hostPath: { path: /var/lib/filebrowser-quantum, type: Directory }   # SSD
+        - name: config
+          configMap: { name: filebrowser-config }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: filebrowser
+  namespace: nas
+spec:
+  type: NodePort
+  selector: { app: filebrowser }
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30081

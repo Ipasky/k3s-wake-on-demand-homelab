@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+"""
+vigilar-wol: anota en el registro cada paquete de despertar (Wake-on-LAN) que pase por la red de casa.
+
+Escucha la tarjeta de red de la Pi y busca el "paquete mágico" (6 bytes 0xFF y 16 veces la MAC
+de destino) en cualquier trama: UDP a cualquier puerto o el tipo Ethernet 0x0842. Como un nodo
+dormido desaparece de la tabla del switch, los paquetes dirigidos a él llegan también a la Pi.
+Así se ve quién despierta a un nodo aunque no lo pida la Pi (otro equipo, el router…).
+
+    journalctl -u vigilar-wol            # lo que ha visto
+Uso: vigilar-wol [interfaz]   (por defecto eth0). Necesita root (o CAP_NET_RAW).
+"""
+import re
+import socket
+import sys
+import time
+
+IFAZ = sys.argv[1] if len(sys.argv) > 1 else "eth0"
+PROPIO = 4                                   # PACKET_OUTGOING: la trama la envía esta misma máquina
+
+
+def mac(b: bytes) -> str:
+    return ":".join(f"{x:02x}" for x in b)
+
+
+def nombres() -> dict:
+    """MAC -> nombre del nodo, sacado del script nodo (el mismo que despierta los nodos)."""
+    try:
+        txt = open("/usr/local/bin/nodo", encoding="utf-8").read()
+    except OSError:
+        return {}
+    return {m.lower(): n for n, m in re.findall(r'\[([\w-]+)\]="([0-9a-fA-F:]{17})"', txt)}
+
+
+def main():
+    s = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0003))   # todas las tramas
+    s.bind((IFAZ, 0))
+    conocidos, recargado, vistos = nombres(), time.time(), {}
+    print(f"vigilando paquetes de despertar en {IFAZ} (nodos conocidos: {', '.join(conocidos.values()) or 'ninguno'})",
+          flush=True)
+    while True:
+        trama, direccion = s.recvfrom(65535)
+        i = trama.find(b"\xff" * 6, 14)
+        if i < 0:
+            continue
+        destino = trama[i + 6:i + 12]
+        if len(destino) < 6 or trama[i + 6:i + 102] != destino * 16:
+            continue
+        if time.time() - recargado > 600:
+            conocidos, recargado = nombres(), time.time()
+        origen = trama[6:12]
+        detalle = ""
+        if trama[12:14] == b"\x08\x00" and trama[23] == 17:          # IPv4 + UDP
+            ihl = (trama[14] & 0x0F) * 4
+            ip = ".".join(str(x) for x in trama[26:30])
+            puerto = int.from_bytes(trama[14 + ihl + 2:14 + ihl + 4], "big")
+            detalle = f" · IP {ip} · UDP {puerto}"
+        elif trama[12:14] == b"\x08\x42":
+            detalle = " · Ethernet 0x0842"
+        clave = (origen, destino)
+        if time.time() - vistos.get(clave, 0) < 3:                    # los reintentos seguidos, una vez
+            continue
+        vistos[clave] = time.time()
+        para = conocidos.get(mac(destino), mac(destino))
+        desde = "esta Pi" if direccion[2] == PROPIO else f"MAC {mac(origen)}"
+        print(f"PAQUETE DE DESPERTAR para {para} ({mac(destino)}) · enviado por {desde}{detalle}", flush=True)
+
+
+if __name__ == "__main__":
+    main()

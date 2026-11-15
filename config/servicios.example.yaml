@@ -1,0 +1,64 @@
+# /etc/despertador/servicios.yaml: EXAMPLE. Copy it to config/servicios.yaml (ignored by git) and adapt it.
+# desplegar.ps1 installs it only if /etc/despertador/servicios.yaml does not exist yet;
+# after editing the real one: sudo systemctl restart despertador
+
+# Nodos gestionados (nombre → IP)
+nodos:
+  faraday: 192.168.1.21
+  mustang: 192.168.1.22
+
+# Servicios: cada uno abre 'puerto' en la Pi y lo reenvía a 'destino' (NodePort en el nodo).
+# Con 'url:' el panel abre esa dirección (p. ej. por Traefik) en lugar del puerto.
+
+# Cuándo una conexión automática (p. ej. la app de Immich del móvil) NO despierta un nodo.
+# Encenderlo desde el panel o abrir el servicio desde el panel siempre funciona.
+energia:
+  respetar_apagado_min: 20        # tras dormirlo desde el panel, durante estos minutos
+  silencio: "00:30-08:00"         # ni en esta franja (hora de la Pi; puede cruzar la medianoche)
+
+servicios:
+  nas:
+    nombre: Fotos (Immich)
+    nodo: mustang
+    puerto: 2283
+    destino: @@IP_MUSTANG@@:30283
+    comprobacion: /api/server/ping
+    despertar_al_conectar: true      # despierta Mustang al abrir la app del móvil
+    no_despiertan:                   # peticiones automáticas de la app que NO despiertan el nodo
+      - /api/server/version          # la app lo comprueba sola de vez en cuando (vista en Traefik)
+    url: https://fotos.@@DOMINIO@@/        # por Traefik, con certificado (k8s/fotos.yaml)
+    app:
+      android: "intent://open#Intent;scheme=immich;package=app.alextran.immich;end"
+      ios: "immich://"
+
+  archivos:
+    nombre: Archivos (FileBrowser)
+    nodo: mustang
+    puerto: 8082                     # solo lo usa Traefik (cerrado en el cortafuegos)
+    destino: @@IP_MUSTANG@@:30081
+    comprobacion: /
+    url: https://archivos.@@DOMINIO@@/
+
+# Accesos rápidos del Inicio (icono opcional: fotos, carpeta, llave, grafica, casa, tiquet)
+enlaces:
+  - nombre: Portal de autenticación
+    url: https://auth.@@DOMINIO@@
+    nota: Passkeys y sesiones
+  - nombre: Telemetría (Beszel)
+    url: https://metricas.@@DOMINIO@@
+    nota: Histórico de las máquinas
+
+# Bloque de Red
+pares_vpn:
+  10.10.10.2: Phone
+  10.10.10.3: Laptop
+interfaces_red: [eth0, wg0]
+
+# Aplicaciones propias (desplegadas con git push pi main)
+apps:
+  - clave: ticket-scanner
+    nombre: Escáner de tiquets
+    url: https://tiquetscan.@@DOMINIO@@
+    namespace: ticket-scanner
+    deployment: ticket-scanner
+    repo: ticket-scanner           # https://github.com/Ipasky/ticket-scanner

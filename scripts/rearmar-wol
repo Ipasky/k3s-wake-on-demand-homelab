@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+#
+# rearmar-wol: deja el despertar por red (Wake-on-LAN) limpio y armado en los nodos
+#
+#   rearmar-wol           arma WoL ("g": solo el paquete mágico) en la tarjeta por la que sale la red
+#   rearmar-wol apagando  lo desactiva y lo vuelve a armar justo antes de apagar
+#
+# Algunas placas se reencienden solas en el primer apagado tras despertar por red: la tarjeta
+# deja pendiente el aviso de "me han despertado" y la placa lo atiende al apagarse. Desactivar y
+# volver a armar WoL al apagar borra ese aviso. Lo lanza rearmar-wol.service (en los nodos).
+#
+set -uo pipefail
+IF=$(ip -o route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($i == "dev") print $(i + 1)}')
+[[ -n "$IF" ]] || IF=$(ip -o link show up | awk -F': ' '$2 != "lo" {print $2; exit}')
+[[ -n "$IF" ]] || { echo "rearmar-wol: no encuentro la tarjeta de red" >&2; exit 0; }
+
+if [[ "${1:-}" == "apagando" ]]; then
+  ethtool -s "$IF" wol d 2>/dev/null
+  sleep 1
+fi
+ethtool -s "$IF" wol g && echo "rearmar-wol: $IF → $(ethtool "$IF" | awk '/^\s*Wake-on:/ {print $2}')"

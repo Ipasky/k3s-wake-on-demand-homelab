@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# importar-imagen: importa en K3s una imagen recibida por la entrada estándar.
+# Se ejecuta como root (sudoers 40-importar-imagen). No acepta argumentos:
+# solo puede importar imágenes, nada más.
+set -euo pipefail
+[[ $# -eq 0 ]] || { echo "importar-imagen no admite argumentos" >&2; exit 2; }
+exec /usr/local/bin/k3s ctr -n k8s.io images import --all-platforms -

@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""
+hpc-crowdsec: intermediario entre el panel y CrowdSec (se ejecuta con sudo).
+
+Solo acepta estas órdenes, con los argumentos validados:
+    hpc-crowdsec alertas                  alertas locales de los últimos 7 días (JSON)
+    hpc-crowdsec decisiones               bloqueos activos (JSON)
+    hpc-crowdsec bloquear <ip> <horas> [motivo]
+                                          bloqueo manual (1 a 87600 horas; 87600 = "permanente")
+    hpc-crowdsec desbloquear <ip>         quita los bloqueos de esa IP
+
+Nunca bloquea los equipos propios: router, Pi, nodos, Windows de administración,
+VPN y redes internas de K3s. Así un error del panel no puede dejarte fuera.
+"""
+import ipaddress
+import re
+import subprocess
+import sys
+
+CSCLI = "/usr/bin/cscli"
+PROTEGIDAS = [ipaddress.ip_network(n) for n in (
+    "127.0.0.0/8", "::1/128",
+    "@@IP_ROUTER@@/32",    # router
+    "@@IP_PI@@/32",   # pi-master
+    "@@IP_FARADAY@@/32",   # faraday
+    "@@IP_MUSTANG@@/32",   # mustang
+    "@@IP_ADMIN@@/32",  # Windows de administración
+    "@@RED_VPN@@",     # VPN
+    "10.42.0.0/16",      # pods de K3s
+    "10.43.0.0/16",      # servicios de K3s
+)]
+
+
+def fallo(msg, codigo=2):
+    print(msg, file=sys.stderr)
+    sys.exit(codigo)
+
+
+def ip_valida(texto):
+    try:
+        ip = ipaddress.ip_address(texto)
+    except ValueError:
+        fallo(f"no es una IP válida: {texto!r}")
+    if any(ip in red for red in PROTEGIDAS):
+        fallo(f"{ip} es un equipo propio: no se bloquea")
+    return str(ip)
+
+
+def ejecutar(*args):
+    try:
+        r = subprocess.run([CSCLI, *args], capture_output=True, text=True, timeout=60)
+    except FileNotFoundError:
+        fallo(f"no se encuentra {CSCLI}: ¿está instalado CrowdSec?", 3)
+    except subprocess.TimeoutExpired:
+        fallo("cscli no respondió a tiempo", 3)
+    sys.stdout.write(r.stdout)
+    if r.returncode != 0:
+        sys.stderr.write(r.stderr)
+    sys.exit(r.returncode)
+
+
+def main():
+    if len(sys.argv) < 2:
+        fallo(__doc__)
+    orden, args = sys.argv[1], sys.argv[2:]
+    if orden == "alertas" and not args:
+        ejecutar("alerts", "list", "-o", "json", "--since", "168h", "-l", "300")
+    elif orden == "decisiones" and not args:
+        ejecutar("decisions", "list", "-o", "json")
+    elif orden == "bloquear" and len(args) in (2, 3):
+        ip = ip_valida(args[0])
+        if not args[1].isdigit() or not 1 <= int(args[1]) <= 87600:
+            fallo("duración no válida (1 a 87600 horas)")
+        motivo = args[2].strip() if len(args) == 3 else ""
+        if not re.fullmatch(r"[\w .,:;()/\-]{0,80}", motivo):
+            fallo("motivo no válido (solo letras, números y puntuación básica, 80 caracteres)")
+        # el prefijo "manual:" distingue estos bloqueos de las detecciones automáticas
+        ejecutar("decisions", "add", "--ip", ip, "--duration", f"{int(args[1])}h",
+                 "--reason", f"manual: {motivo or 'bloqueo desde el panel'}")
+    elif orden == "desbloquear" and len(args) == 1:
+        ip = ip_valida(args[0])
+        ejecutar("decisions", "delete", "--ip", ip)
+    else:
+        fallo("orden no admitida")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,17 @@
+[Unit]
+Description=Controlador de energía del clúster (despertar/dormir nodos bajo demanda)
+After=network-online.target k3s.service
+Wants=network-online.target
+
+[Service]
+User=raspberrypi
+Environment=KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+EnvironmentFile=-/etc/default/nodo-controlador
+RuntimeDirectory=nodo-controlador          # /run/nodo-controlador/estado.json para el panel
+RuntimeDirectoryMode=0755
+ExecStart=/usr/local/bin/nodo-controlador
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

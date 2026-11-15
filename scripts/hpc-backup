@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+#
+# hpc-backup: reúne la configuración del clúster en un repositorio Git en la Pi
+#
+#   sudo hpc-backup              copia de configuración (auto/) + commit si hay cambios
+#   sudo hpc-backup --secretos   además, archivo CIFRADO con claves WireGuard, token y BD de K3s
+#
+# Estructura del repositorio (~raspberrypi/hpc-config):
+#   auto/pi/       ficheros de configuración de la Pi (regenerado en cada copia)
+#   auto/k8s/      manifiestos de ~/k8s
+#   auto/cluster/  estado del clúster exportado (nodos, RuntimeClass, servicios)
+#   auto/nodos/    ficheros de los nodos (solo se actualizan si el nodo está despierto)
+#   manual/        lo que añadas tú a mano (el script nunca lo toca)
+#
+set -uo pipefail
+
+OWNER="raspberrypi"
+REPO="/home/${OWNER}/hpc-config"
+SECRETOS_DIR="/home/${OWNER}/hpc-secretos"
+export KUBECONFIG="/etc/rancher/k3s/k3s.yaml"
+AUTO="${REPO}/auto"
+
+# Ficheros de la Pi a copiar (sin secretos). Añade aquí lo que quieras.
+PI_FILES=(
+  /etc/nftables.conf
+  /etc/default/nodo-controlador
+  /etc/systemd/system/nodo-controlador.service
+  # --- despertador / panel web ---
+  /etc/despertador/servicios.yaml
+  /etc/systemd/system/despertador.service
+  /opt/despertador/despertador.py
+  /opt/despertador/static
+  # --- DDNS y vigilancia de discos ---
+  /etc/systemd/system/duckdns.service
+  /etc/systemd/system/duckdns.timer
+  /etc/default/revisar-smart
+  /etc/systemd/system/revisar-smart.service
+  /etc/systemd/system/revisar-smart.timer
+  /etc/systemd/system/recoger-smart.service
+  /etc/systemd/system/recoger-smart.timer
+  /etc/systemd/system/hpc-backup.service
+  /etc/systemd/system/hpc-backup.timer
+  /usr/local/bin/nodo
+  /usr/local/bin/nodo-controlador
+  /usr/local/bin/hpc-backup
+  /etc/ssh/sshd_config.d
+  /etc/netplan
+  /boot/firmware/cmdline.txt
+  /etc/rancher/k3s/config.yaml
+)
+
+# Nodos: nombre -> IP (usuario SSH = nombre del nodo). Solo ficheros legibles sin root.
+declare -A NODOS=( [faraday]="@@IP_FARADAY@@" [mustang]="@@IP_MUSTANG@@" )
+NODO_FILES=(
+  /etc/systemd/system/wol.service
+  /etc/systemd/system/solo-wake-lan.service
+  /usr/local/sbin/solo-wake-lan.sh
+)
+
+# Namespaces cuyos recursos se exportan (sin secretos: esos van cifrados aparte)
+NAMESPACES=(homepage beszel nas auth panel)
+
+as_owner(){ runuser -u "$OWNER" -- "$@"; }
+[[ $EUID -eq 0 ]] || { echo "ERROR: ejecútalo con sudo" >&2; exit 1; }
+for c in git jq kubectl; do command -v "$c" >/dev/null || { echo "ERROR: falta '$c'" >&2; exit 1; }; done
+
+# Limpia campos que cambian solos (así solo hay commits cuando cambia algo de verdad)
+JQ_LIMPIO='del(.items[]?.metadata.managedFields, .items[]?.metadata.resourceVersion,
+  .items[]?.metadata.uid, .items[]?.metadata.creationTimestamp, .items[]?.metadata.generation,
+  .items[]?.status, .items[]?.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"],
+  .items[]?.metadata.annotations["deployment.kubernetes.io/revision"], .metadata)'
+
+# ---------- preparar repositorio ----------
+mkdir -p "$REPO/manual" "$AUTO/nodos"
+rm -rf "$AUTO/pi" "$AUTO/k8s" "$AUTO/cluster"
+mkdir -p "$AUTO/pi" "$AUTO/k8s" "$AUTO/cluster"
+
+# ---------- Pi ----------
+for f in "${PI_FILES[@]}"; do
+  [[ -e "$f" ]] && cp -a --parents "$f" "$AUTO/pi/"
+done
+cp -a "/home/${OWNER}/k8s/." "$AUTO/k8s/" 2>/dev/null || true
+
+# ---------- estado del clúster ----------
+kubectl get nodes -o json | jq '[.items[] | {nombre: .metadata.name,
+    etiquetas: .metadata.labels, taints: .spec.taints}]' > "$AUTO/cluster/nodos.json"
+kubectl get runtimeclass -o json | jq "$JQ_LIMPIO" > "$AUTO/cluster/runtimeclass.json"
+for ns in "${NAMESPACES[@]}"; do
+  kubectl get deploy,svc,configmap,pvc,serviceaccount -n "$ns" -o json 2>/dev/null \
+    | jq "$JQ_LIMPIO" > "$AUTO/cluster/${ns}.json"
+done
+kubectl get ingressroute,middleware,tlsstore -A -o json 2>/dev/null \
+  | jq "$JQ_LIMPIO" > "$AUTO/cluster/traefik.json"
+kubectl get clusterrole,clusterrolebinding -o json \
+  | jq '{items: [.items[] | select(.metadata.name == "homepage")]}' | jq "$JQ_LIMPIO" \
+  > "$AUTO/cluster/rbac-homepage.json"
+
+# ---------- nodos (solo si están despiertos; si no, se conserva la copia anterior) ----------
+for n in "${!NODOS[@]}"; do
+  ip="${NODOS[$n]}"
+  if ping -c1 -W1 "$ip" >/dev/null 2>&1; then
+    rm -rf "$AUTO/nodos/$n"; mkdir -p "$AUTO/nodos/$n"
+    for f in "${NODO_FILES[@]}"; do
+      as_owner scp -q -o BatchMode=yes -o ConnectTimeout=5 "${n}@${ip}:${f}" "$AUTO/nodos/$n/" 2>/dev/null || true
+    done
+    echo "[$n] copiado"
+  else
+    echo "[$n] dormido: se conserva la copia anterior"
+  fi
+done
+
+date '+%F %T' > "$AUTO/ULTIMA_COPIA.txt"
+chown -R "$OWNER:" "$REPO"
+
+# ---------- commit ----------
+if [[ ! -d "$REPO/.git" ]]; then
+  as_owner git -C "$REPO" init -q
+  as_owner git -C "$REPO" config user.name  "hpc-backup"
+  as_owner git -C "$REPO" config user.email "hpc-backup@pi-master"
+fi
+as_owner git -C "$REPO" add -A -- . ':!auto/ULTIMA_COPIA.txt'
+if as_owner git -C "$REPO" diff --cached --quiet; then
+  echo "Sin cambios desde la última copia."
+else
+  as_owner git -C "$REPO" commit -qm "Copia automática $(date '+%F %H:%M')"
+  echo "Cambios guardados:"; as_owner git -C "$REPO" show --stat --oneline HEAD | tail -n +2
+fi
+
+# ---------- secretos cifrados (solo con --secretos, interactivo) ----------
+if [[ "${1:-}" == "--secretos" ]]; then
+  for c in sqlite3 gpg; do command -v "$c" >/dev/null || { echo "ERROR: falta '$c'" >&2; exit 1; }; done
+  tmp=$(mktemp -d)
+  sqlite3 /var/lib/rancher/k3s/server/db/state.db ".backup '$tmp/k3s-state.db'"
+  cp -a /etc/wireguard "$tmp/wireguard"
+  cp -a /home/raspberrypi/.acme.sh "$tmp/acme.sh" 2>/dev/null || true   # certificados + cuenta ACME
+  cp /etc/default/despertador "$tmp/despertador.env" 2>/dev/null || true # credenciales de Beszel
+  cp /etc/default/duckdns "$tmp/duckdns.env" 2>/dev/null || true         # token DDNS
+  cp /var/lib/rancher/k3s/server/token "$tmp/k3s-token" 2>/dev/null || true
+  cp /var/lib/rancher/k3s/server/node-token "$tmp/k3s-node-token" 2>/dev/null || true
+  cp /etc/rancher/k3s/k3s.yaml "$tmp/kubeconfig.yaml"
+  mkdir -p "$SECRETOS_DIR"
+  out="$SECRETOS_DIR/secretos-$(date +%F).tar.gz.gpg"
+  echo "Cifrando secretos → elige una contraseña (¡apúntala! sin ella no se recuperan):"
+  tar -C "$tmp" -czf - . | gpg --pinentry-mode loopback --symmetric --cipher-algo AES256 -o "$out"
+  rm -rf "$tmp"
+  chown -R "$OWNER:" "$SECRETOS_DIR"; chmod 700 "$SECRETOS_DIR"; chmod 600 "$out"
+  echo "Secretos guardados en $out"
+fi

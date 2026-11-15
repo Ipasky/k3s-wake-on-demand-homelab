@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+#
+# nodo: gestiona el encendido/apagado bajo demanda de los nodos del clúster
+#
+#   nodo despertar <nodo>   enciende por WoL y espera a Ready (des-cordona)
+#   nodo dormir   <nodo>    cordona y apaga (avisa si hay cargas; -f para forzar)
+#   nodo estado   [nodo]    muestra el estado de los nodos
+#
+# Instalar en la Pi como /usr/local/bin/nodo  (chmod +x)
+#
+set -euo pipefail
+
+# ----------------------------- Configuración -----------------------------
+export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
+WAIT_UP=180        # segundos máximos esperando a que arranque y esté Ready
+WAIT_DOWN=90       # segundos máximos esperando a que se apague
+VIGILA_REENCENDIDO=90   # s vigilando tras el apagado (algunas placas se reencienden solas)
+
+# Mapa de nodos: nombre -> IP, MAC y usuario SSH. Añade aquí los nuevos nodos.
+declare -A NODO_IP=(
+  [faraday]="@@IP_FARADAY@@"
+  [mustang]="@@IP_MUSTANG@@"
+)
+declare -A NODO_MAC=(
+  [faraday]="@@MAC_FARADAY@@"
+  [mustang]="@@MAC_MUSTANG@@"   # vacía = instalar.sh conserva la ya instalada
+)
+declare -A NODO_USER=(
+  [faraday]="@@USUARIO_FARADAY@@"
+  [mustang]="@@USUARIO_MUSTANG@@"
+)
+
+SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new)
+
+# ----------------------------- Utilidades --------------------------------
+err(){ echo "ERROR: $*" >&2; exit 1; }
+need(){ command -v "$1" >/dev/null 2>&1 || err "falta el comando '$1'"; }
+
+uso(){
+  cat <<USO
+Uso: nodo <acción> <nodo>
+  despertar <nodo>   Enciende por Wake-on-LAN y espera a Ready (lo des-cordona)
+  dormir <nodo>      Cordona y apaga el nodo (-f para forzar con cargas activas)
+  estado [nodo]      Estado de los nodos
+Nodos disponibles: ${!NODO_IP[*]}
+USO
+}
+
+nodo_valido(){ [[ -n "${NODO_IP[$1]:-}" ]] || err "nodo desconocido: '$1' (válidos: ${!NODO_IP[*]})"; }
+
+# ¿Responde a ping? (la verdad física; K3s tarda ~40 s en notar un nodo caído)
+vivo(){ ping -c1 -W1 "$1" >/dev/null 2>&1; }
+
+node_ready(){ kubectl get node "$1" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true; }
+
+cargas_activas(){
+  kubectl get pods -A --field-selector "spec.nodeName=$1,status.phase=Running" --no-headers 2>/dev/null \
+    | grep -vcE '^kube-system ' || true
+}
+
+# ----------------------------- Acciones ----------------------------------
+despertar(){
+  local n="$1"; nodo_valido "$n"
+  local ip="${NODO_IP[$n]}" mac="${NODO_MAC[$n]}"
+  [[ -n "$mac" ]] || err "MAC de '$n' sin configurar (edita NODO_MAC en el script)"
+  need wakeonlan
+
+  if vivo "$ip" && [[ "$(node_ready "$n")" == "True" ]]; then
+    echo "[$n] ya está encendido y Ready."
+  else
+    if ! vivo "$ip"; then
+      # Un solo paquete: algunas NIC guardan los duplicados que llegan durante el arranque
+      # y los ejecutan en el siguiente apagado (el nodo se reenciende solo).
+      echo "[$n] enviando magic packet a $mac ..."
+      wakeonlan "$mac" >/dev/null
+    else
+      echo "[$n] responde a ping pero K3s aún no lo ve Ready; esperando..."
+    fi
+
+    local t=0
+    echo -n "[$n] esperando a que arranque"
+    until vivo "$ip"; do
+      (( t >= WAIT_UP )) && { echo; err "[$n] no responde tras ${WAIT_UP}s. ¿WoL armado? (ethtool <iface> | grep Wake-on → 'g')"; }
+      echo -n "."; sleep 5; (( t += 5 ))
+      # reintento espaciado (a los 60 s y a los 120 s), nunca seguido
+      (( t % 60 == 0 )) && { echo -n "R"; wakeonlan "$mac" >/dev/null; }
+    done
+    echo " encendido (${t}s)"
+
+    echo -n "[$n] esperando a que se una al clúster"
+    sleep 10; (( t += 10 ))    # margen por si K3s aún tenía un estado Ready antiguo
+    until [[ "$(node_ready "$n")" == "True" ]]; do
+      (( t >= WAIT_UP )) && { echo; err "[$n] arrancó pero no llegó a Ready (revisa k3s-agent)"; }
+      echo -n "."; sleep 5; (( t += 5 ))
+    done
+    echo " OK (${t}s)"
+  fi
+
+  kubectl uncordon "$n" >/dev/null 2>&1 || true
+  echo "[$n] Ready y disponible para cargas."
+}
+
+dormir(){
+  local n="$1"; nodo_valido "$n"
+  local force="${2:-}"
+  local ip="${NODO_IP[$n]}" user="${NODO_USER[$n]:-$n}"
+
+  if ! vivo "$ip"; then
+    echo "[$n] no responde a ping: ya está apagado."; return 0
+  fi
+
+  # Comprobar acceso por clave ANTES de tocar nada (nunca pedir contraseña)
+  ssh "${SSH_OPTS[@]}" "${user}@${ip}" true 2>/dev/null \
+    || err "[$n] sin acceso SSH por clave. Ejecuta: ssh-copy-id ${user}@${ip}"
+
+  local busy; busy="$(cargas_activas "$n")"; busy="${busy:-0}"
+  if (( busy > 0 )) && [[ "$force" != "-f" && "$force" != "--force" ]]; then
+    echo "[$n] tiene $busy carga(s) en marcha:"
+    kubectl get pods -A --field-selector "spec.nodeName=$n,status.phase=Running" --no-headers 2>/dev/null \
+      | grep -vE '^kube-system ' | awk '{print "   - "$1"/"$2}'
+    err "[$n] no se apaga con cargas activas. Usa '-f' para forzar."
+  fi
+
+  local t0; t0=$(date +%s)          # marca: solo cuenta la actividad POSTERIOR al apagado
+  echo "[$n] cordonando (no se programarán nuevas cargas)..."
+  kubectl cordon "$n" >/dev/null
+
+  echo "[$n] enviando apagado (${user}@${ip})..."
+  ssh "${SSH_OPTS[@]}" "${user}@${ip}" 'sudo -n /usr/sbin/poweroff' 2>/dev/null || true
+
+  local t=0
+  echo -n "[$n] esperando a que se apague"
+  while vivo "$ip"; do
+    if (( t >= WAIT_DOWN )); then
+      echo
+      kubectl uncordon "$n" >/dev/null 2>&1 || true
+      err "[$n] sigue encendido tras ${WAIT_DOWN}s. ¿Falta /etc/sudoers.d/10-poweroff? (des-cordonado de nuevo)"
+    fi
+    echo -n "."; sleep 3; (( t += 3 ))
+  done
+  echo " apagado (${t}s)."
+
+  vigilar_reencendido "$n" "$ip" "$user" "$t0"
+}
+
+# Algunas placas se reencienden solas en el primer apagado tras un despertar por red
+# (aviso PME que queda pendiente en la tarjeta). Si vuelve sin motivo, se apaga otra vez.
+vigilar_reencendido(){
+  local n="$1" ip="$2" user="$3" t0="$4" t=0 act
+  echo -n "[$n] vigilando ${VIGILA_REENCENDIDO}s por si se reenciende solo (Ctrl+C para dejarlo)"
+  while (( t < VIGILA_REENCENDIDO )); do
+    sleep 5; (( t += 5 )); echo -n "."
+    if ! vivo "$ip"; then continue; fi
+    echo
+    act="$(kubectl get node "$n" -o jsonpath="{.metadata.annotations['power/last-activity']}" 2>/dev/null)"
+    [[ "$act" =~ ^[0-9]+$ ]] || act=0
+    if (( act > t0 )); then
+      echo "[$n] se ha encendido y alguien ha pedido el servicio: lo dejo encendido."
+      kubectl uncordon "$n" >/dev/null 2>&1 || true
+      return 0
+    fi
+    echo "[$n] se ha reencendido solo (${t}s) → apagando de nuevo..."
+    ssh "${SSH_OPTS[@]}" "${user}@${ip}" 'sudo -n /usr/sbin/poweroff' 2>/dev/null || true
+    local d=0
+    while vivo "$ip" && (( d < WAIT_DOWN )); do sleep 3; (( d += 3 )); done
+    vivo "$ip" && echo "[$n] AVISO: sigue encendido." || echo "[$n] apagado definitivamente."
+    return 0
+  done
+  echo " sigue apagado."
+}
+
+estado(){
+  local n
+  for n in "${!NODO_IP[@]}"; do
+    [[ -n "${1:-}" && "$n" != "$1" ]] && continue
+    local fis="apagado"; vivo "${NODO_IP[$n]}" && fis="encendido"
+    printf "  %-8s %-15s físico: %-9s  K3s Ready: %s\n" "$n" "${NODO_IP[$n]}" "$fis" "$(node_ready "$n" || echo '?')"
+  done
+  echo; kubectl get nodes
+}
+
+# ----------------------------- Main --------------------------------------
+need kubectl
+case "${1:-}" in
+  despertar) shift; [[ $# -ge 1 ]] || { uso; exit 1; }; despertar "$@";;
+  dormir)    shift; [[ $# -ge 1 ]] || { uso; exit 1; }; dormir "$@";;
+  estado)    shift; [[ -n "${1:-}" ]] && nodo_valido "$1"; estado "${1:-}";;
+  ""|-h|--help|ayuda) uso;;
+  *) echo "Acción desconocida: '${1}'" >&2; uso; exit 1;;
+esac

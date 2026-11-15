@@ -1,0 +1,48 @@
+#!/bin/sh
+# ============================================================================
+# .githooks/pre-commit: blocks any commit that would publish private data.
+#
+# What counts as private is read from config/local.env (ignored by git):
+#   CLAVES_SENSIBLES  names of variables whose VALUES must never be committed
+#   TEXTOS_PRIVADOS   extra words, separated by |
+# It also refuses the files that must stay local (local.env, privado/, real configs).
+#
+# Activate it once per clone:   git config core.hooksPath .githooks
+# Skip it (only if you are sure): git commit --no-verify
+# ============================================================================
+ENV_FILE=config/local.env
+if [ ! -f "$ENV_FILE" ]; then
+  echo "pre-commit: config/local.env not found, cannot check the commit (blocked)." >&2
+  exit 1
+fi
+
+tmp=$(mktemp -d) || exit 1
+trap 'rm -rf "$tmp"' EXIT
+tr -d '\r' < "$ENV_FILE" > "$tmp/env"
+
+claves=$(sed -n 's/^CLAVES_SENSIBLES="\(.*\)".*/\1/p' "$tmp/env")
+textos=$(sed -n 's/^TEXTOS_PRIVADOS="\(.*\)".*/\1/p' "$tmp/env")
+: > "$tmp/patrones"
+for k in $claves; do
+  v=$(sed -n "s/^$k=\([^#]*\).*/\1/p" "$tmp/env" | sed 's/^[[:space:]]*"//; s/"[[:space:]]*$//; s/[[:space:]]*$//')
+  [ "${#v}" -ge 4 ] && printf '%s\n' "$v" >> "$tmp/patrones"
+done
+printf '%s\n' "$textos" | tr '|' '\n' | sed '/^[[:space:]]*$/d' >> "$tmp/patrones"
+
+fallo=0
+for f in $(git diff --cached --name-only --diff-filter=ACMR); do
+  case "$f" in
+    config/local.env|privado/*|config/servicios.yaml|config/hpc-respaldo-fuentes.conf)
+      echo "  BLOCKED  $f  (local-only file)" >&2; fallo=1; continue ;;
+  esac
+  if [ -s "$tmp/patrones" ] && git show ":$f" 2>/dev/null | grep -I -q -i -F -f "$tmp/patrones"; then
+    hallado=$(git show ":$f" | grep -I -o -i -F -f "$tmp/patrones" | sort -u | tr '\n' ' ')
+    echo "  BLOCKED  $f  contains: $hallado" >&2; fallo=1
+  fi
+done
+
+if [ "$fallo" -ne 0 ]; then
+  echo "pre-commit: private data found. Replace it with an @@MARKER@@ (see config/local.env.example) or unstage the file." >&2
+  exit 1
+fi
+exit 0

@@ -1,0 +1,81 @@
+# ============================================================================
+# Panel del HPC (despertador) detrás de Authelia
+#   El panel NO vive en Kubernetes: es un servicio systemd en la Pi (:8095).
+#   Por eso se crea un Service "sin selector" + EndpointSlice que apunta a la
+#   IP de la Pi, y Traefik lo trata como cualquier otro servicio del clúster.
+#   Resultado: https://panel.@@DOMINIO@@
+# ============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: panel
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: despertador
+  namespace: panel
+spec:
+  ports:
+    - name: http
+      port: 8095
+      targetPort: 8095
+      protocol: TCP
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: despertador-1
+  namespace: panel
+  labels:
+    kubernetes.io/service-name: despertador
+addressType: IPv4
+ports:
+  - name: http
+    port: 8095
+    protocol: TCP
+endpoints:
+  - addresses:
+      - @@IP_PI@@                 # la propia Pi, fuera del clúster
+    conditions:
+      ready: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: authelia
+  namespace: panel
+spec:
+  forwardAuth:
+    address: http://authelia.auth.svc.cluster.local:9091/api/authz/forward-auth
+    trustForwardHeader: true
+    authResponseHeaders:
+      - Remote-User
+      - Remote-Groups
+      - Remote-Email
+      - Remote-Name
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: panel
+  namespace: panel
+spec:
+  entryPoints: [websecure]
+  routes:
+    # Lo necesario para instalar el panel como app en el móvil (manifiesto, service
+    # worker e iconos) va SIN portal: el móvil lo pide antes de iniciar sesión.
+    # No contiene nada privado. Traefik prioriza esta regla por ser más larga.
+    - match: Host(`panel.@@DOMINIO@@`) && (Path(`/manifest.webmanifest`) || Path(`/sw.js`) || PathPrefix(`/static/icono`))
+      kind: Rule
+      services:
+        - name: despertador
+          port: 8095
+    - match: Host(`panel.@@DOMINIO@@`)
+      kind: Rule
+      middlewares:
+        - name: authelia
+      services:
+        - name: despertador
+          port: 8095
+  tls: {}

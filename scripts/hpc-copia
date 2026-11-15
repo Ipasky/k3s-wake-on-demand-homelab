@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+#
+# hpc-copia: copia de seguridad completa, en un solo paso
+#
+#   hpc-copia                 despierta los nodos si duermen, recoge sus cortafuegos y
+#                             lanza hpc-backup (config de la Pi, manifiestos, estado del clúster)
+#   hpc-copia --sin-despertar no enciende nodos dormidos (conserva su copia anterior)
+#   hpc-copia --secretos      además, genera el archivo cifrado de secretos (pide contraseña)
+#
+# Ejecutar como raspberrypi (usa sus claves SSH); pedirá sudo para hpc-backup.
+#
+set -uo pipefail
+
+REPO="$HOME/hpc-config"
+NODO_BIN="/usr/local/bin/nodo"
+declare -A NODOS=( [faraday]="@@IP_FARADAY@@" [mustang]="@@IP_MUSTANG@@" )
+SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=5)
+
+DESPERTAR=1; SECRETOS=""
+for arg in "$@"; do
+  case "$arg" in
+    --sin-despertar) DESPERTAR=0;;
+    --secretos)      SECRETOS="--secretos";;
+    -h|--help) sed -n '3,12p' "$0"; exit 0;;
+    *) echo "Opción desconocida: $arg" >&2; exit 1;;
+  esac
+done
+
+[[ $EUID -ne 0 ]] || { echo "ERROR: ejecútalo como raspberrypi, no como root." >&2; exit 1; }
+[[ -d "$REPO/manual" ]] || { echo "ERROR: no encuentro $REPO/manual (¿has ejecutado hpc-backup alguna vez?)" >&2; exit 1; }
+
+vivo(){ ping -c1 -W1 "$1" >/dev/null 2>&1; }
+
+echo "== 1. Nodos =="
+for n in "${!NODOS[@]}"; do
+  ip="${NODOS[$n]}"
+  if vivo "$ip"; then
+    echo "   [$n] encendido"
+  elif (( DESPERTAR )); then
+    echo "   [$n] dormido → despertando..."
+    "$NODO_BIN" despertar "$n" || echo "   [$n] AVISO: no se pudo despertar"
+  else
+    echo "   [$n] dormido (se conserva su copia anterior)"
+  fi
+done
+
+echo "== 2. Cortafuegos de los nodos → manual/ =="
+for n in "${!NODOS[@]}"; do
+  ip="${NODOS[$n]}"
+  vivo "$ip" || { echo "   [$n] no disponible, se omite"; continue; }
+  destino="$REPO/manual/nftables-${n}.conf"
+  tmp="$(mktemp)"
+  if ssh "${SSH_OPTS[@]}" "${n}@${ip}" 'sudo -n cat /etc/nftables.conf' > "$tmp" 2>/dev/null \
+     && grep -q "table inet filter" "$tmp"; then
+    if [[ -f "$destino" ]] && cmp -s "$tmp" "$destino"; then
+      echo "   [$n] sin cambios"
+    else
+      mv "$tmp" "$destino"; echo "   [$n] actualizado"
+    fi
+    grep -q "^flush ruleset" "$destino" && echo "   [$n] ¡OJO! su nftables.conf aún tiene 'flush ruleset'"
+  else
+    echo "   [$n] ERROR al leerlo (¿falta /etc/sudoers.d/20-leer-nftables?)"
+  fi
+  rm -f "$tmp"
+done
+
+echo "== 3. Copia de la configuración =="
+sudo /usr/local/bin/hpc-backup $SECRETOS
+
+echo
+echo "Listo. En Windows: git -C <carpeta-del-clon> pull"

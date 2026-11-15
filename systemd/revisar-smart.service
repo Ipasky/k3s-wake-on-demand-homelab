@@ -1,0 +1,6 @@
+[Unit]
+Description=Revisión de la salud SMART de los discos
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/revisar-smart

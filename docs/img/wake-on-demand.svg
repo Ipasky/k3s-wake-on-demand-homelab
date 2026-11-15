@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="1012" viewBox="0 0 1200 1012">
+  <defs>
+    <symbol id="i-movil" overflow="visible">
+      <g>
+        <path d="M9.5 2.5 L14.5 2.5 C15.881 2.5 17 3.619 17 5 L17 19 C17 20.381 15.881 21.5 14.5 21.5 L9.5 21.5 C8.119 21.5 7 20.381 7 19 L7 5 C7 3.619 8.119 2.5 9.5 2.5 Z" fill="none" stroke="#58a6ff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="11" y1="18.5" x2="13" y2="18.5" fill="none" stroke="#58a6ff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </symbol>
+    <symbol id="i-torre" overflow="visible">
+      <g>
+        <path d="M8 2.5 L16 2.5 C17.105 2.5 18 3.395 18 4.5 L18 19.5 C18 20.605 17.105 21.5 16 21.5 L8 21.5 C6.895 21.5 6 20.605 6 19.5 L6 4.5 C6 3.395 6.895 2.5 8 2.5 Z" fill="none" stroke="#8b949e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 6.5 L15 6.5 M9 9.5 L15 9.5" fill="none" stroke="#8b949e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M13.6 16 C13.6 16.424 13.431 16.831 13.131 17.131 C12.831 17.431 12.424 17.6 12 17.6 C11.576 17.6 11.169 17.431 10.869 17.131 C10.569 16.831 10.4 16.424 10.4 16 C10.4 15.576 10.569 15.169 10.869 14.869 C11.169 14.569 11.576 14.4 12 14.4 C12.424 14.4 12.831 14.569 13.131 14.869 C13.431 15.169 13.6 15.576 13.6 16 Z" fill="none" stroke="#8b949e" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </symbol>
+    <clipPath id="clip-path-1">
+      <path d="M582.4 220 L594.4 220 L594.4 232 L582.4 232 Z"/>
+    </clipPath>
+    <clipPath id="clip-path-2">
+      <path d="M464 273 L484 273 L484 293 L464 293 Z"/>
+    </clipPath>
+    <clipPath id="clip-path-3">
+      <path d="M207.6 360 L195.6 360 L195.6 348 L207.6 348 Z"/>
+    </clipPath>
+    <clipPath id="clip-path-4">
+      <path d="M992.4 438 L1004.4 438 L1004.4 450 L992.4 450 Z"/>
+    </clipPath>
+    <clipPath id="clip-path-5">
+      <path d="M874 491 L894 491 L894 511 L874 511 Z"/>
+    </clipPath>
+    <clipPath id="clip-path-6">
+      <path d="M617.6 578 L605.6 578 L605.6 566 L617.6 566 Z"/>
+    </clipPath>
+    <clipPath id="clip-path-7">
+      <path d="M207.6 634 L195.6 634 L195.6 622 L207.6 622 Z"/>
+    </clipPath>
+    <clipPath id="clip-path-8">
+      <path d="M992.4 712 L1004.4 712 L1004.4 724 L992.4 724 Z"/>
+    </clipPath>
+    <clipPath id="clip-path-9">
+      <path d="M464 757 L484 757 L484 777 L464 777 Z"/>
+    </clipPath>
+    <clipPath id="clip-path-10">
+      <path d="M464 851 L484 851 L484 871 L464 871 Z"/>
+    </clipPath>
+    <clipPath id="clip-path-11">
+      <path d="M992.4 926 L1004.4 926 L1004.4 938 L992.4 938 Z"/>
+    </clipPath>
+  </defs>
+  <title>wake-on-demand.svg</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <path d="M18 0 L1182 0 C1191.941 0 1200 8.059 1200 18 L1200 994 C1200 1003.941 1191.941 1012 1182 1012 L18 1012 C8.059 1012 0 1003.941 0 994 L0 18 C0 8.059 8.059 0 18 0 Z" fill="#0d1117"/>
+    <text transform="matrix(1 0 0 1 30 40)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="20" font-weight="bold" fill="#e6edf3"><tspan x="0" y="0">How wake-on-demand works</tspan></text>
+    <text transform="matrix(1 0 0 1 330 40)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="14" fill="#8b949e"><tspan x="0" y="0">· opening a service that lives on a sleeping node</tspan></text>
+    <path d="M32 178 L1168 178 C1174.627 178 1180 183.373 1180 190 L1180 372 C1180 378.627 1174.627 384 1168 384 L32 384 C25.373 384 20 378.627 20 372 L20 190 C20 183.373 25.373 178 32 178 Z" fill="#58a6ff" fill-opacity="0.06" stroke="#58a6ff" stroke-opacity="0.22"/>
+    <path d="M22.5 178 L22.5 178 C23.881 178 25 179.119 25 180.5 L25 381.5 C25 382.881 23.881 384 22.5 384 L22.5 384 C21.119 384 20 382.881 20 381.5 L20 180.5 C20 179.119 21.119 178 22.5 178 Z" fill="#58a6ff"/>
+    <text transform="matrix(1 0 0 1 38 200)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="10.5" font-weight="bold" fill="#58a6ff" letter-spacing="1.2"><tspan x="0" y="0">1 · REQUEST</tspan></text>
+    <path d="M32 396 L1168 396 C1174.627 396 1180 401.373 1180 408 L1180 646 C1180 652.627 1174.627 658 1168 658 L32 658 C25.373 658 20 652.627 20 646 L20 408 C20 401.373 25.373 396 32 396 Z" fill="#d29922" fill-opacity="0.06" stroke="#d29922" stroke-opacity="0.22"/>
+    <path d="M22.5 396 L22.5 396 C23.881 396 25 397.119 25 398.5 L25 655.5 C25 656.881 23.881 658 22.5 658 L22.5 658 C21.119 658 20 656.881 20 655.5 L20 398.5 C20 397.119 21.119 396 22.5 396 Z" fill="#d29922"/>
+    <text transform="matrix(1 0 0 1 38 418)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="10.5" font-weight="bold" fill="#d29922" letter-spacing="1.2"><tspan x="0" y="0">2 · WAKE</tspan></text>
+    <path d="M32 670 L1168 670 C1174.627 670 1180 675.373 1180 682 L1180 788 C1180 794.627 1174.627 800 1168 800 L32 800 C25.373 800 20 794.627 20 788 L20 682 C20 675.373 25.373 670 32 670 Z" fill="#3fb950" fill-opacity="0.06" stroke="#3fb950" stroke-opacity="0.22"/>
+    <path d="M22.5 670 L22.5 670 C23.881 670 25 671.119 25 672.5 L25 797.5 C25 798.881 23.881 800 22.5 800 L22.5 800 C21.119 800 20 798.881 20 797.5 L20 672.5 C20 671.119 21.119 670 22.5 670 Z" fill="#3fb950"/>
+    <text transform="matrix(1 0 0 1 38 692)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="10.5" font-weight="bold" fill="#3fb950" letter-spacing="1.2"><tspan x="0" y="0">3 · USE</tspan></text>
+    <path d="M32 812 L1168 812 C1174.627 812 1180 817.373 1180 824 L1180 946 C1180 952.627 1174.627 958 1168 958 L32 958 C25.373 958 20 952.627 20 946 L20 824 C20 817.373 25.373 812 32 812 Z" fill="#bc8cff" fill-opacity="0.06" stroke="#bc8cff" stroke-opacity="0.22"/>
+    <path d="M22.5 812 L22.5 812 C23.881 812 25 813.119 25 814.5 L25 955.5 C25 956.881 23.881 958 22.5 958 L22.5 958 C21.119 958 20 956.881 20 955.5 L20 814.5 C20 813.119 21.119 812 22.5 812 Z" fill="#bc8cff"/>
+    <text transform="matrix(1 0 0 1 38 834)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="10.5" font-weight="bold" fill="#bc8cff" letter-spacing="1.2"><tspan x="0" y="0">4 · SLEEP</tspan></text>
+    <line x1="190" y1="140" x2="190" y2="988" fill="#000000" stroke="#30363d" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 6"/>
+    <path d="M94 66 L286 66 C293.732 66 300 72.268 300 80 L300 120 C300 127.732 293.732 134 286 134 L94 134 C86.268 134 80 127.732 80 120 L80 80 C80 72.268 86.268 66 94 66 Z" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+    <path d="M104 80 L124 80 C129.523 80 134 84.477 134 90 L134 110 C134 115.523 129.523 120 124 120 L104 120 C98.477 120 94 115.523 94 110 L94 90 C94 84.477 98.477 80 104 80 Z" fill="#58a6ff" fill-opacity="0.15"/>
+    <use xlink:href="#i-movil" transform="matrix(1 0 0 1 102 88)"/>
+    <text transform="matrix(1 0 0 1 144 96)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="15" font-weight="bold" fill="#e6edf3"><tspan x="0" y="0">You</tspan></text>
+    <text transform="matrix(1 0 0 1 144 114)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="11" fill="#8b949e"><tspan x="0" y="0">phone or laptop</tspan></text>
+    <line x1="600" y1="140" x2="600" y2="988" fill="#000000" stroke="#30363d" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 6"/>
+    <path d="M504 66 L696 66 C703.732 66 710 72.268 710 80 L710 120 C710 127.732 703.732 134 696 134 L504 134 C496.268 134 490 127.732 490 120 L490 80 C490 72.268 496.268 66 504 66 Z" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+    <path d="M514 80 L534 80 C539.523 80 544 84.477 544 90 L544 110 C544 115.523 539.523 120 534 120 L514 120 C508.477 120 504 115.523 504 110 L504 90 C504 84.477 508.477 80 514 80 Z" fill="#3fb950" fill-opacity="0.15"/>
+    <text transform="matrix(1 0 0 1 554 96)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="15" font-weight="bold" fill="#e6edf3"><tspan x="0" y="0">Raspberry Pi</tspan></text>
+    <text transform="matrix(1 0 0 1 554 114)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="11" fill="#8b949e"><tspan x="0" y="0">despertador · K3s</tspan></text>
+    <path d="M630 56 L696.4 56 C701.923 56 706.4 60.477 706.4 66 L706.4 66 C706.4 71.523 701.923 76 696.4 76 L630 76 C624.477 76 620 71.523 620 66 L620 66 C620 60.477 624.477 56 630 56 Z" fill="#0d1117" stroke="#3fb950"/>
+    <text transform="matrix(1 0 0 1 629 70)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="10" font-weight="bold" fill="#3fb950" letter-spacing="0.8"><tspan x="0" y="0">ALWAYS ON</tspan></text>
+    <line x1="1010" y1="140" x2="1010" y2="988" fill="#000000" stroke="#30363d" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 6"/>
+    <path d="M914 66 L1106 66 C1113.732 66 1120 72.268 1120 80 L1120 120 C1120 127.732 1113.732 134 1106 134 L914 134 C906.268 134 900 127.732 900 120 L900 80 C900 72.268 906.268 66 914 66 Z" fill="#161b22" stroke="#8b949e" stroke-width="1.5"/>
+    <path d="M924 80 L944 80 C949.523 80 954 84.477 954 90 L954 110 C954 115.523 949.523 120 944 120 L924 120 C918.477 120 914 115.523 914 110 L914 90 C914 84.477 918.477 80 924 80 Z" fill="#8b949e" fill-opacity="0.15"/>
+    <use xlink:href="#i-torre" transform="matrix(1 0 0 1 922 88)"/>
+    <text transform="matrix(1 0 0 1 964 96)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="15" font-weight="bold" fill="#e6edf3"><tspan x="0" y="0">Mustang</tspan></text>
+    <text transform="matrix(1 0 0 1 964 114)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="11" fill="#8b949e"><tspan x="0" y="0">GPU node + NAS</tspan></text>
+    <path d="M1040 56 L1083.6 56 C1089.123 56 1093.6 60.477 1093.6 66 L1093.6 66 C1093.6 71.523 1089.123 76 1083.6 76 L1040 76 C1034.477 76 1030 71.523 1030 66 L1030 66 C1030 60.477 1034.477 56 1040 56 Z" fill="#0d1117" stroke="#d29922"/>
+    <text transform="matrix(1 0 0 1 1039 70)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="10" font-weight="bold" fill="#d29922" letter-spacing="0.8"><tspan x="0" y="0">ASLEEP</tspan></text>
+    <line x1="206" y1="226" x2="592" y2="226" fill="#000000" stroke="#58a6ff" stroke-width="2"/>
+    <g clip-path="url(#clip-path-1)">
+      <polygon points="582.4,220 594.4,226 582.4,232" fill="#58a6ff"/>
+    </g>
+    <circle cx="190" cy="226" r="13" fill="#58a6ff"/>
+    <text transform="matrix(1 0 0 1 190 230.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" font-weight="800" fill="#0d1117" text-anchor="middle"><tspan x="0" y="0">1</tspan></text>
+    <path d="M319 191 L471 191 C477.627 191 483 196.373 483 203 L483 203 C483 209.627 477.627 215 471 215 L319 215 C312.373 215 307 209.627 307 203 L307 203 C307 196.373 312.373 191 319 191 Z" fill="#0d1117" stroke="#58a6ff" stroke-opacity="0.45"/>
+    <text transform="matrix(1 0 0 1 395 207.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" fill="#e6edf3" text-anchor="middle"><tspan x="0" y="0">Open the photo library</tspan></text>
+    <path d="M460 260 L740 260 C745.523 260 750 264.477 750 270 L750 296 C750 301.523 745.523 306 740 306 L460 306 C454.477 306 450 301.523 450 296 L450 270 C450 264.477 454.477 260 460 260 Z" fill="#1c2330" stroke="#58a6ff" stroke-opacity="0.7"/>
+    <g clip-path="url(#clip-path-2)">
+      <g>
+        <path d="M468.167 276.333 L479.833 276.333 C480.754 276.333 481.5 277.08 481.5 278 L481.5 288 C481.5 288.92 480.754 289.667 479.833 289.667 L468.167 289.667 C467.246 289.667 466.5 288.92 466.5 288 L466.5 278 C466.5 277.08 467.246 276.333 468.167 276.333 Z" fill="none" stroke="#58a6ff" stroke-width="1.417" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M466.5 280.5 L481.5 280.5 M470.667 284.667 L472.75 282.583 L474.833 284.25 L477.333 281.75" fill="none" stroke="#58a6ff" stroke-width="1.417" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+    <text transform="matrix(1 0 0 1 600 279)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" font-weight="bold" fill="#e6edf3" text-anchor="middle"><tspan x="0" y="0">Mustang does not answer</tspan></text>
+    <text transform="matrix(1 0 0 1 600 295)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle"><tspan x="0" y="0">despertador checks the service on the node</tspan></text>
+    <line x1="584" y1="354" x2="198" y2="354" fill="#000000" stroke="#58a6ff" stroke-width="2" stroke-dasharray="6 5"/>
+    <g clip-path="url(#clip-path-3)">
+      <polygon points="207.6,360 195.6,354 207.6,348" fill="#58a6ff"/>
+    </g>
+    <circle cx="600" cy="354" r="13" fill="#58a6ff"/>
+    <text transform="matrix(1 0 0 1 600 358.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" font-weight="800" fill="#0d1117" text-anchor="middle"><tspan x="0" y="0">2</tspan></text>
+    <path d="M263 319 L527 319 C533.627 319 539 324.373 539 331 L539 331 C539 337.627 533.627 343 527 343 L263 343 C256.373 343 251 337.627 251 331 L251 331 C251 324.373 256.373 319 263 319 Z" fill="#0d1117" stroke="#58a6ff" stroke-opacity="0.45"/>
+    <text transform="matrix(1 0 0 1 395 335.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" fill="#e6edf3" text-anchor="middle"><tspan x="0" y="0">&quot;Waking up…&quot; page (reloads on its own)</tspan></text>
+    <line x1="616" y1="444" x2="1002" y2="444" fill="#000000" stroke="#d29922" stroke-width="2"/>
+    <g clip-path="url(#clip-path-4)">
+      <polygon points="992.4,438 1004.4,444 992.4,450" fill="#d29922"/>
+    </g>
+    <circle cx="600" cy="444" r="13" fill="#d29922"/>
+    <text transform="matrix(1 0 0 1 600 448.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" font-weight="800" fill="#0d1117" text-anchor="middle"><tspan x="0" y="0">3</tspan></text>
+    <path d="M722 409 L888 409 C894.627 409 900 414.373 900 421 L900 421 C900 427.627 894.627 433 888 433 L722 433 C715.373 433 710 427.627 710 421 L710 421 C710 414.373 715.373 409 722 409 Z" fill="#0d1117" stroke="#d29922" stroke-opacity="0.45"/>
+    <text transform="matrix(1 0 0 1 805 425.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" fill="#e6edf3" text-anchor="middle"><tspan x="0" y="0">Wake-on-LAN magic packet</tspan></text>
+    <path d="M870 478 L1150 478 C1155.523 478 1160 482.477 1160 488 L1160 514 C1160 519.523 1155.523 524 1150 524 L870 524 C864.477 524 860 519.523 860 514 L860 488 C860 482.477 864.477 478 870 478 Z" fill="#1c2330" stroke="#d29922" stroke-opacity="0.7"/>
+    <g clip-path="url(#clip-path-5)">
+      <polygon points="884.833,492.667 877.333,502.667 883.167,502.667 882.333,509.333 889.833,499.333 884,499.333" fill="none" stroke="#d29922" stroke-width="1.417" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text transform="matrix(1 0 0 1 1010 497)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" font-weight="bold" fill="#e6edf3" text-anchor="middle"><tspan x="0" y="0">Boots from power-off (S5)</tspan></text>
+    <text transform="matrix(1 0 0 1 1010 513)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle"><tspan x="0" y="0">Ubuntu → K3s agent → service · ~35 s</tspan></text>
+    <line x1="994" y1="572" x2="608" y2="572" fill="#000000" stroke="#d29922" stroke-width="2"/>
+    <g clip-path="url(#clip-path-6)">
+      <polygon points="617.6,578 605.6,572 617.6,566" fill="#d29922"/>
+    </g>
+    <circle cx="1010" cy="572" r="13" fill="#d29922"/>
+    <text transform="matrix(1 0 0 1 1010 576.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" font-weight="800" fill="#0d1117" text-anchor="middle"><tspan x="0" y="0">4</tspan></text>
+    <path d="M708 537 L902 537 C908.627 537 914 542.373 914 549 L914 549 C914 555.627 908.627 561 902 561 L708 561 C701.373 561 696 555.627 696 549 L696 549 C696 542.373 701.373 537 708 537 Z" fill="#0d1117" stroke="#d29922" stroke-opacity="0.45"/>
+    <text transform="matrix(1 0 0 1 805 553.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" fill="#e6edf3" text-anchor="middle"><tspan x="0" y="0">Node Ready · service healthy</tspan></text>
+    <line x1="584" y1="628" x2="198" y2="628" fill="#000000" stroke="#d29922" stroke-width="2" stroke-dasharray="6 5"/>
+    <g clip-path="url(#clip-path-7)">
+      <polygon points="207.6,634 195.6,628 207.6,622" fill="#d29922"/>
+    </g>
+    <circle cx="600" cy="628" r="13" fill="#d29922"/>
+    <text transform="matrix(1 0 0 1 600 632.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" font-weight="800" fill="#0d1117" text-anchor="middle"><tspan x="0" y="0">5</tspan></text>
+    <path d="M315.5 593 L474.5 593 C481.127 593 486.5 598.373 486.5 605 L486.5 605 C486.5 611.627 481.127 617 474.5 617 L315.5 617 C308.873 617 303.5 611.627 303.5 605 L303.5 605 C303.5 598.373 308.873 593 315.5 593 Z" fill="#0d1117" stroke="#d29922" stroke-opacity="0.45"/>
+    <text transform="matrix(1 0 0 1 395 609.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" fill="#e6edf3" text-anchor="middle"><tspan x="0" y="0">Redirect to the service</tspan></text>
+    <line x1="206" y1="718" x2="1002" y2="718" fill="#000000" stroke="#3fb950" stroke-width="2"/>
+    <g clip-path="url(#clip-path-8)">
+      <polygon points="992.4,712 1004.4,718 992.4,724" fill="#3fb950"/>
+    </g>
+    <circle cx="190" cy="718" r="13" fill="#3fb950"/>
+    <text transform="matrix(1 0 0 1 190 722.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" font-weight="800" fill="#0d1117" text-anchor="middle"><tspan x="0" y="0">6</tspan></text>
+    <path d="M375 683 L415 683 C421.627 683 427 688.373 427 695 L427 695 C427 701.627 421.627 707 415 707 L375 707 C368.373 707 363 701.627 363 695 L363 695 C363 688.373 368.373 683 375 683 Z" fill="#0d1117" stroke="#3fb950" stroke-opacity="0.45"/>
+    <text transform="matrix(1 0 0 1 395 699.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" fill="#e6edf3" text-anchor="middle"><tspan x="0" y="0">Use it</tspan></text>
+    <path d="M460 744 L1150 744 C1155.523 744 1160 748.477 1160 754 L1160 780 C1160 785.523 1155.523 790 1150 790 L460 790 C454.477 790 450 785.523 450 780 L450 754 C450 748.477 454.477 744 460 744 Z" fill="#1c2330" stroke="#3fb950" stroke-opacity="0.7"/>
+    <g clip-path="url(#clip-path-9)">
+      <path d="M467.333 773.667 L467.333 765.333 M472.333 773.667 L472.333 760.333 M477.333 773.667 L477.333 767.833 M482.333 773.667 L465.667 773.667" fill="none" stroke="#3fb950" stroke-width="1.417" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text transform="matrix(1 0 0 1 805 763)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" font-weight="bold" fill="#e6edf3" text-anchor="middle"><tspan x="0" y="0">Traffic marks the node as active</tspan></text>
+    <text transform="matrix(1 0 0 1 805 779)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle"><tspan x="0" y="0">the despertador forwards it and stamps power/last-activity</tspan></text>
+    <path d="M460 838 L1150 838 C1155.523 838 1160 842.477 1160 848 L1160 874 C1160 879.523 1155.523 884 1150 884 L460 884 C454.477 884 450 879.523 450 874 L450 848 C450 842.477 454.477 838 460 838 Z" fill="#1c2330" stroke="#bc8cff" stroke-opacity="0.7"/>
+    <g clip-path="url(#clip-path-10)">
+      <g>
+        <circle cx="474" cy="861" r="7.083" fill="none" stroke="#bc8cff" stroke-width="1.417" stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="474,857.25 474,861 476.5,862.667" fill="none" stroke="#bc8cff" stroke-width="1.417" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+    <text transform="matrix(1 0 0 1 805 857)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" font-weight="bold" fill="#e6edf3" text-anchor="middle"><tspan x="0" y="0">Idle: no jobs, no traffic, no SSH sessions</tspan></text>
+    <text transform="matrix(1 0 0 1 805 873)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="11" fill="#8b949e" text-anchor="middle"><tspan x="0" y="0">for the configured idle time · a &quot;hold&quot; label keeps it on</tspan></text>
+    <line x1="616" y1="932" x2="1002" y2="932" fill="#000000" stroke="#bc8cff" stroke-width="2"/>
+    <g clip-path="url(#clip-path-11)">
+      <polygon points="992.4,926 1004.4,932 992.4,938" fill="#bc8cff"/>
+    </g>
+    <circle cx="600" cy="932" r="13" fill="#bc8cff"/>
+    <text transform="matrix(1 0 0 1 600 936.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" font-weight="800" fill="#0d1117" text-anchor="middle"><tspan x="0" y="0">7</tspan></text>
+    <path d="M669.5 897 L940.5 897 C947.127 897 952.5 902.373 952.5 909 L952.5 909 C952.5 915.627 947.127 921 940.5 921 L669.5 921 C662.873 921 657.5 915.627 657.5 909 L657.5 909 C657.5 902.373 662.873 897 669.5 897 Z" fill="#0d1117" stroke="#bc8cff" stroke-opacity="0.45"/>
+    <text transform="matrix(1 0 0 1 805 913.5)" x="0" y="0" xml:space="preserve" font-family="&apos;-apple-system&apos;, sans-serif" font-size="12.5" fill="#e6edf3" text-anchor="middle"><tspan x="0" y="0">Power off (S5) until the next request</tspan></text>
+    <path d="M532.627 98.794 L532.438 98.463 C532.446 96.087 531.343 95.119 530.058 94.382 C530.447 94.28 530.848 94.195 530.958 93.707 C531.627 93.536 531.767 93.226 531.834 92.899 C532.009 92.782 532.594 92.455 532.532 91.892 C532.86 91.666 533.042 91.376 532.95 90.965 C533.302 90.581 533.394 90.263 533.245 89.971 C533.667 89.446 533.48 89.174 533.299 88.898 C533.616 88.324 533.337 87.709 532.452 87.812 C532.1 87.295 531.333 87.412 531.214 87.414 C531.081 87.249 530.906 87.106 530.367 87.175 C530.017 86.864 529.627 86.917 529.224 87.07 C528.746 86.698 528.429 86.996 528.067 87.109 C527.488 86.922 527.356 87.178 527.071 87.282 C526.44 87.15 526.248 87.436 525.945 87.739 L525.593 87.732 C524.64 88.285 524.167 89.411 523.999 89.99 C523.831 89.411 523.359 88.285 522.407 87.732 L522.054 87.739 C521.751 87.436 521.559 87.15 520.928 87.282 C520.643 87.178 520.511 86.922 519.932 87.109 C519.694 87.035 519.476 86.881 519.219 86.889 L519.22 86.889 C519.085 86.893 518.94 86.942 518.776 87.07 C518.373 86.917 517.982 86.864 517.633 87.175 C517.094 87.106 516.918 87.249 516.785 87.415 C516.667 87.412 515.9 87.295 515.548 87.812 C514.663 87.709 514.383 88.324 514.7 88.898 C514.519 89.174 514.332 89.446 514.755 89.971 C514.605 90.264 514.698 90.581 515.05 90.965 C514.957 91.376 515.14 91.666 515.467 91.892 C515.406 92.455 515.991 92.782 516.166 92.899 C516.233 93.227 516.373 93.536 517.041 93.707 C517.151 94.196 517.553 94.28 517.942 94.383 C516.657 95.119 515.554 96.087 515.562 98.463 L515.373 98.794 C513.899 99.677 512.573 102.515 514.647 104.822 C514.782 105.544 515.009 106.062 515.212 106.637 C515.514 108.95 517.489 110.033 518.01 110.161 C518.773 110.733 519.586 111.277 520.686 111.657 C521.722 112.71 522.846 113.112 523.975 113.111 C523.992 113.111 524.009 113.111 524.025 113.111 C525.154 113.112 526.278 112.71 527.315 111.657 C528.414 111.277 529.227 110.733 529.99 110.161 C530.511 110.033 532.486 108.95 532.788 106.637 C532.991 106.063 533.218 105.544 533.353 104.822 C535.427 102.515 534.101 99.677 532.627 98.794 Z M531.492 98.388 C531.415 99.345 526.427 95.055 527.288 94.913 C529.626 94.524 531.571 95.892 531.492 98.388 Z M529.29 103.157 C528.035 103.967 526.228 103.444 525.252 101.99 C524.277 100.536 524.503 98.701 525.757 97.892 C527.012 97.082 528.819 97.605 529.795 99.059 C530.77 100.513 530.544 102.348 529.29 103.157 Z M525.813 88.388 C525.856 88.603 525.905 88.739 525.961 88.779 C526.238 88.481 526.465 88.177 526.821 87.891 C526.823 88.059 526.737 88.241 526.949 88.375 C527.141 88.117 527.399 87.887 527.743 87.692 C527.577 87.978 527.714 88.064 527.803 88.182 C528.066 87.958 528.315 87.73 528.799 87.553 C528.666 87.714 528.481 87.872 528.677 88.057 C528.948 87.888 529.219 87.719 529.861 87.6 C529.717 87.761 529.418 87.922 529.599 88.083 C529.938 87.954 530.313 87.859 530.729 87.805 C530.53 87.968 530.364 88.129 530.527 88.255 C530.89 88.144 531.39 87.993 531.879 88.123 L531.569 88.434 C531.535 88.476 532.293 88.467 532.793 88.474 C532.611 88.728 532.424 88.972 532.316 89.408 C532.365 89.458 532.613 89.43 532.847 89.408 C532.607 89.913 532.191 90.04 532.094 90.256 C532.24 90.367 532.443 90.338 532.665 90.262 C532.493 90.618 532.131 90.862 531.845 91.15 C531.917 91.201 532.044 91.232 532.343 91.196 C532.078 91.477 531.759 91.734 531.381 91.965 C531.448 92.042 531.678 92.039 531.892 92.044 C531.549 92.379 531.108 92.553 530.695 92.773 C530.901 92.913 531.048 92.881 531.206 92.879 C530.914 93.119 530.417 93.244 529.955 93.389 C530.043 93.525 530.131 93.562 530.319 93.601 C529.83 93.871 529.131 93.747 528.933 93.885 C528.981 94.021 529.115 94.11 529.276 94.184 C528.49 94.229 526.339 94.155 525.927 92.528 C526.732 91.643 528.201 90.605 530.728 89.322 C528.762 89.98 526.988 90.857 525.504 92.064 C523.758 91.251 524.961 89.202 525.813 88.388 Z M524.051 94.257 C525.289 94.244 526.821 95.167 526.815 96.037 C526.81 96.804 525.739 97.426 524.06 97.414 C522.417 97.395 521.31 96.633 521.314 95.889 C521.317 95.277 522.656 94.221 524.051 94.257 Z M517.752 93.601 C517.94 93.563 518.028 93.525 518.115 93.389 C517.654 93.244 517.157 93.119 516.865 92.879 C517.022 92.881 517.17 92.914 517.376 92.773 C516.962 92.553 516.521 92.38 516.179 92.044 C516.392 92.039 516.623 92.042 516.69 91.965 C516.311 91.734 515.992 91.477 515.728 91.196 C516.027 91.232 516.153 91.201 516.226 91.15 C515.94 90.861 515.578 90.618 515.405 90.262 C515.627 90.338 515.831 90.367 515.977 90.256 C515.88 90.04 515.463 89.913 515.224 89.408 C515.457 89.43 515.705 89.458 515.755 89.408 C515.646 88.973 515.46 88.728 515.278 88.474 C515.778 88.467 516.536 88.476 516.502 88.434 L516.192 88.123 C516.681 87.993 517.181 88.144 517.544 88.256 C517.707 88.129 517.541 87.969 517.342 87.805 C517.757 87.86 518.133 87.954 518.472 88.083 C518.653 87.922 518.354 87.761 518.21 87.6 C518.851 87.72 519.123 87.888 519.393 88.057 C519.589 87.872 519.405 87.715 519.272 87.553 C519.756 87.73 520.005 87.958 520.268 88.183 C520.357 88.064 520.494 87.978 520.328 87.693 C520.672 87.888 520.93 88.117 521.122 88.375 C521.334 88.241 521.248 88.059 521.249 87.891 C521.606 88.177 521.833 88.482 522.11 88.779 C522.166 88.739 522.215 88.603 522.258 88.388 C523.11 89.202 524.313 91.252 522.568 92.064 C521.083 90.858 519.31 89.981 517.345 89.323 C519.87 90.606 521.339 91.644 522.144 92.528 C521.731 94.155 519.581 94.229 518.795 94.184 C518.956 94.11 519.09 94.022 519.138 93.886 C518.94 93.748 518.241 93.871 517.752 93.601 Z M520.831 94.839 C521.692 94.982 516.704 99.272 516.627 98.315 C516.549 95.819 518.493 94.45 520.831 94.839 Z M515.535 104.407 C514.323 103.447 513.932 100.634 516.18 99.37 C517.534 99.013 516.637 104.889 515.535 104.407 Z M520.196 109.432 C519.512 109.838 517.852 109.671 516.672 108.001 C515.876 106.6 515.978 105.174 516.537 104.755 C517.373 104.254 518.664 104.931 519.658 106.067 C520.523 107.094 520.918 108.9 520.196 109.432 Z M518.839 103.304 C517.585 102.494 517.358 100.659 518.334 99.205 C519.309 97.751 521.117 97.229 522.371 98.038 C523.626 98.848 523.852 100.683 522.876 102.137 C521.901 103.591 520.093 104.113 518.839 103.304 Z M524.078 112.294 C522.574 112.357 521.1 111.08 521.119 110.638 C521.096 109.989 522.95 109.482 524.159 109.512 C525.375 109.459 527.007 109.897 527.01 110.479 C527.03 111.043 525.53 112.318 524.078 112.294 Z M527.092 105.893 C527.101 107.412 525.752 108.649 524.08 108.658 C522.408 108.666 521.046 107.441 521.037 105.922 L521.037 105.893 C521.028 104.375 522.376 103.137 524.048 103.129 C525.72 103.121 527.083 104.346 527.092 105.864 C527.092 105.874 527.092 105.884 527.092 105.893 Z M531.304 108.082 C530.008 109.853 528.254 109.922 527.6 109.428 C526.917 108.793 527.439 106.822 528.375 105.741 L528.375 105.741 C529.447 104.549 530.594 103.77 531.392 104.378 C531.929 104.906 532.245 106.892 531.304 108.082 Z M532.476 104.334 C531.374 104.816 530.476 98.939 531.831 99.297 C534.078 100.561 533.688 103.374 532.476 104.334 Z M532.448 95.235 L532.774 95.235 L532.774 94.655 L533.1 94.655 C533.264 94.655 533.324 94.723 533.347 94.879 C533.364 94.998 533.359 95.141 533.399 95.235 L533.725 95.235 C533.667 95.152 533.669 94.977 533.663 94.884 C533.652 94.734 533.607 94.578 533.447 94.537 L533.447 94.533 C533.611 94.466 533.682 94.335 533.682 94.16 C533.682 93.936 533.514 93.752 533.247 93.752 L532.448 93.752 L532.448 95.235 Z M532.774 94.005 L533.131 94.005 C533.277 94.005 533.355 94.068 533.355 94.21 C533.355 94.36 533.277 94.423 533.131 94.423 L532.774 94.423 Z M531.644 94.511 C531.644 95.277 532.265 95.898 533.031 95.898 C533.798 95.898 534.418 95.277 534.418 94.511 C534.418 93.745 533.797 93.124 533.031 93.124 C532.265 93.124 531.644 93.745 531.644 94.511 Z M534.187 94.511 C534.187 95.15 533.67 95.667 533.031 95.667 C532.393 95.667 531.875 95.15 531.875 94.511 C531.875 93.872 532.393 93.355 533.031 93.355 C533.67 93.355 534.187 93.872 534.187 94.511 Z" fill="#2dd43e"/>
+  </g>
+</svg>

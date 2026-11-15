@@ -1,0 +1,19 @@
+[Unit]
+Description=Registro de los paquetes Wake-on-LAN que pasan por la red de casa
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/sbin/vigilar-wol eth0
+Restart=always
+RestartSec=10
+# Solo necesita escuchar la red: sin más privilegios
+CapabilityBoundingSet=CAP_NET_RAW
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+MemoryMax=64M
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+[Unit]
+Description=Copia de seguridad cada 3 días a las 14:00
+
+[Timer]
+# Días 1, 4, 7, …, 28, 31 de cada mes a las 14:00 (cada 3 días; a final de
+# mes puede caer dos días seguidos, del 31 al 1)
+OnCalendar=*-*-01/3 14:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

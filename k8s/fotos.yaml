@@ -1,0 +1,61 @@
+# ============================================================================
+# Immich por HTTPS: https://fotos.@@DOMINIO@@
+#
+#   Traefik (certificado del dominio) → despertador en la Pi (:2283) → Immich en Mustang
+#   El despertador sigue en medio: abrir la app o la web despierta Mustang como antes.
+#
+#   Sin Authelia delante, a propósito: la app del móvil habla con la API de Immich y no
+#   sabe pasar por el portal. Immich tiene su propio inicio de sesión. En su lugar, solo
+#   se admiten conexiones desde casa y desde la VPN (el dominio apunta a una IP privada,
+#   así que desde fuera ni siquiera se llega; esto es una segunda barrera).
+#
+#   Cuando el móvil y el PC usen ya esta dirección, el 2283 de la Pi se cierra en el
+#   cortafuegos a todo menos al clúster (Traefik llega desde la red de pods).
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: fotos-pi
+  namespace: nas
+spec:
+  ports:
+    - { name: http, port: 2283, targetPort: 2283, protocol: TCP }
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: fotos-pi-1
+  namespace: nas
+  labels:
+    kubernetes.io/service-name: fotos-pi
+addressType: IPv4
+ports:
+  - { name: http, port: 2283, protocol: TCP }
+endpoints:
+  - addresses: [@@IP_PI@@]          # el despertador, en la propia Pi
+    conditions: { ready: true }
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: solo-casa-y-vpn
+  namespace: nas
+spec:
+  ipAllowList:
+    sourceRange: [@@RED_CASA@@, @@RED_VPN@@]
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: fotos
+  namespace: nas
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`fotos.@@DOMINIO@@`)
+      kind: Rule
+      middlewares:
+        - name: solo-casa-y-vpn
+      services:
+        - { name: fotos-pi, port: 2283 }
+  tls: {}

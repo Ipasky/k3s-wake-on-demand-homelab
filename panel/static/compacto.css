@@ -1,0 +1,877 @@
+/* ============================================================================
+   Panel principal: barra de acceso rápido en la cabecera + secciones
+   plegables. Se carga después de /static/estilo.css y solo añade o ajusta.
+   ========================================================================== */
+
+/* ------------- barra de acceso rápido (fila de abajo de la cabecera) ------------- */
+.barra-rapida {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; min-width: 0;
+  padding-top: 10px; border-top: 1px solid var(--borde);
+}
+.bc-nodos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; flex: 1 1 auto; min-width: 0; }
+.bc-nodo {
+  display: flex; align-items: center; gap: 7px; min-width: 0; height: 36px; padding: 0 6px 0 11px;
+  border-radius: var(--radio-s); border: 1px solid transparent; background: var(--superficie-2);
+  font-size: .82rem; cursor: pointer; transition: border-color .15s ease;
+}
+.bc-nodo:hover { border-color: var(--borde-fuerte); }
+.bc-nodo:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+.bc-nodo.seleccionada { border-color: color-mix(in srgb, var(--acento) 55%, transparent); }
+.bc-nodo.ocupada .punto { animation: latido 1s ease-in-out infinite; }
+.bc-nodo .punto { width: 8px; height: 8px; }
+.bc-nombre { font-weight: 600; margin-right: auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bc-energia {
+  flex: none; width: 26px; height: 26px; display: grid; place-items: center; cursor: pointer;
+  border-radius: 50%; border: 1px solid var(--borde); background: transparent; color: var(--texto-3);
+  transition: color .15s ease, border-color .15s ease;
+}
+.bc-energia .ico { width: 14px; height: 14px; display: block; }
+.bc-cuenta { font-size: .72rem; color: var(--texto-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bc-cuenta.aviso { color: var(--aviso); }
+.bc-nodo[data-encendido="no"] .bc-energia:hover { color: var(--ok);  border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+.bc-nodo[data-encendido="si"] .bc-energia:hover { color: var(--mal); border-color: color-mix(in srgb, var(--mal) 50%, transparent); }
+
+.bc-apps {
+  display: flex; gap: 4px; flex: 0 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none;
+  padding: 5px 4px 0 10px; border-left: 1px solid var(--borde);
+}
+.bc-apps::-webkit-scrollbar { display: none; }
+.bc-app {
+  flex: none; width: 52px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  text-decoration: none; color: var(--texto-2);
+}
+.bc-app .icono-app { position: relative; width: 28px; height: 28px; transition: filter .15s ease; }
+.bc-app .icono-app .ico { width: 15px; height: 15px; }
+.bc-app .icono-app .punto { position: absolute; right: -3px; top: -3px; width: 7px; height: 7px; box-shadow: 0 0 0 2px var(--fondo); }
+.bc-app:hover .icono-app { filter: brightness(1.18); }
+.bc-app:hover { color: var(--texto); }
+.bc-app-nombre { max-width: 100%; font-size: .6rem; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 900px) {
+  .barra-rapida { flex-direction: column; align-items: stretch; gap: 6px; }
+  .bc-apps { border-left: 0; padding: 9px 4px 0; border-top: 1px solid var(--borde); }
+}
+@media (max-width: 720px) {
+  .barra-rapida { grid-row: 3; padding-top: 8px; }
+  .bc-nodos { gap: 5px; }
+  .bc-nodo { height: 32px; gap: 5px; padding: 0 4px 0 8px; font-size: .74rem; }
+  .bc-energia { width: 22px; height: 22px; }
+  .bc-energia .ico { width: 12px; height: 12px; }
+  .bc-cuenta { font-size: .66rem; }
+  .bc-app { width: 48px; }
+  .navegacion { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .navegacion::-webkit-scrollbar { display: none; }
+  .navegacion a { padding: 6px 11px; font-size: .8rem; white-space: nowrap; }
+}
+
+/* ----------------------- contenido ----------------------- */
+main { gap: var(--hueco); min-height: 100vh; }
+.estado-general { margin-top: -6px; }
+.bloques { display: flex; flex-direction: column; gap: 22px; }
+main { gap: 22px; }
+.bloque-seccion { display: flex; flex-direction: column; }
+
+/* Las tarjetas de dentro de una sección ya están sobre vidrio: sin sombra, sin un segundo
+   desenfoque y sin moverse al pasar el ratón (el desenfoque anidado dejaba un rastro al salir). */
+.cuerpo-bloque .tarjeta { box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.cuerpo-bloque .nodo:hover, .cuerpo-bloque .servicio:hover { transform: none; }
+
+/* el clúster: una línea discreta encima de los tres nodos */
+#nodos .nodo[data-nodo="cluster"] { display: none; }
+.linea-cluster {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 10px; padding: 7px 12px;
+  border-radius: var(--radio-s); border: 1px solid transparent; font-size: .82rem; color: var(--texto-2);
+  font-variant-numeric: tabular-nums; cursor: pointer; transition: border-color .15s ease, background .15s ease;
+}
+.linea-cluster strong { color: var(--texto); font-weight: 600; }
+.linea-cluster .ver { margin-left: auto; color: var(--texto-3); font-size: .76rem; }
+.linea-cluster:hover { background: var(--superficie-2); }
+.linea-cluster:hover .ver { color: var(--acento); }
+.linea-cluster.seleccionada { border-color: color-mix(in srgb, var(--acento) 55%, transparent); }
+.linea-cluster:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+
+/* tarjetas de nodo compactas: cabecera, métricas en línea y minigráfica al lado */
+#nodos .rejilla-nodos { gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
+#nodos .nodo {
+  position: relative; overflow: hidden; padding: 11px 14px 10px; background: var(--superficie-2);
+  display: grid; align-content: start; align-items: center; column-gap: 14px; row-gap: 8px;
+  grid-template-columns: minmax(0, 14rem) minmax(40px, 1fr);
+  grid-template-areas: "cab cab" "met mini";
+}
+#nodos .nodo .tarjeta-cab { grid-area: cab; margin: 0; height: 28px; }
+#nodos .nodo .metricas { grid-area: met; flex-direction: row; flex-wrap: nowrap; gap: 12px; min-width: 0; }
+#nodos .nodo .metrica { font-size: .86rem; gap: 5px; white-space: nowrap; }
+#nodos .nodo .metrica .ico { width: 13px; height: 13px; }
+#nodos .nodo .minigrafica { grid-area: mini; height: 24px; margin: 0; }
+#nodos .nodo .nota-accion { grid-column: 1 / -1; min-height: 0; margin: 0; }
+#nodos .nodo .nota-accion:empty { display: none; }
+#nodos .detalle-caja { margin-top: 10px; }
+.tarjeta-cab .energia .ico { display: block; }
+/* encender / apagar está en el bloque Energía (y en la barra de arriba): las tarjetas, solo métricas */
+#nodos .nodo .tarjeta-cab .energia { display: none; }
+
+/* ----- bloque Energía ----- */
+.energia-bloque { margin-top: 16px; }
+.energia-bloque .subtitulo { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.energia-bloque .ayuda { font-size: .72rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--texto-3); }
+.energia-filas { display: flex; flex-direction: column; gap: 6px; }
+.energia-fila {
+  display: grid; align-items: center; gap: 4px 14px; padding: 6px 8px 6px 12px; min-height: 42px;
+  grid-template-columns: 100px minmax(0, 1fr) auto auto;
+  grid-template-areas: "nombre estado retencion accion";
+  border-radius: var(--radio-s); background: var(--superficie-2); border-left: 3px solid transparent; font-size: .84rem;
+}
+.energia-fila.retenida { border-left-color: var(--acento); }
+.energia-fila.aviso    { border-left-color: var(--aviso); }
+.ef-nombre { grid-area: nombre; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.ef-nombre .punto { width: 8px; height: 8px; }
+.ef-estado { grid-area: estado; display: flex; align-items: center; gap: 7px; min-width: 0; color: var(--texto-2);
+             font-variant-numeric: tabular-nums; }
+.ef-estado > span:not(.ef-barra) { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ef-estado .ico { width: 13px; height: 13px; color: var(--texto-3); }
+.energia-fila.aviso .ef-estado { color: var(--aviso); }
+.ef-barra { flex: 0 0 70px; height: 3px; border-radius: 3px; background: var(--borde); overflow: hidden; }
+.ef-barra i { display: block; height: 100%; background: var(--acento); transition: width 1s linear; }
+.ef-retencion { grid-area: retencion; display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.ef-etiqueta, .ef-retenido { font-size: .76rem; color: var(--texto-3); white-space: nowrap; }
+.ef-retenido { color: var(--acento); }
+.ef-grupo { display: inline-flex; border: 1px solid var(--borde); border-radius: 999px; overflow: hidden; }
+.ef-grupo .ef-boton { border: 0; border-radius: 0; }
+.ef-grupo .ef-boton + .ef-boton { border-left: 1px solid var(--borde); }
+.ef-boton {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; cursor: pointer;
+  border-radius: 999px; border: 1px solid var(--borde); background: transparent; color: var(--texto-2);
+  font: inherit; font-size: .76rem; white-space: nowrap; transition: color .15s, border-color .15s, background .15s;
+}
+.ef-boton:hover { color: var(--texto); background: var(--superficie-3, var(--superficie-2)); }
+.ef-boton:disabled { opacity: .5; cursor: wait; }
+.ef-boton .ico { width: 13px; height: 13px; display: block; }
+.ef-energia { grid-area: accion; }
+.ef-energia.encender:hover { color: var(--ok);  border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+.ef-energia.apagar:hover   { color: var(--mal); border-color: color-mix(in srgb, var(--mal) 50%, transparent); }
+/* "Mantener encendido" se despliega en 1 h / 4 h / Siempre al pulsarlo */
+.ef-retencion .ef-grupo { display: none; }
+.energia-fila.eligiendo .ef-mantener { display: none; }
+.energia-fila.eligiendo .ef-grupo { display: inline-flex; animation: abrir-bloque .15s ease; }
+@media (max-width: 900px) {
+  .energia-fila { grid-template-columns: minmax(0, 1fr) auto; padding: 8px 8px 8px 12px;
+                  grid-template-areas: "nombre accion" "estado estado" "retencion retencion"; }
+  .ef-retencion { justify-content: flex-start; flex-wrap: wrap; }
+}
+
+/* cuenta atrás hasta que el controlador lo duerma: una línea, igual en las tres tarjetas */
+.cuenta-nodo { grid-area: cuenta; display: flex; align-items: center; gap: 6px; min-width: 0;
+               font-size: .74rem; color: var(--texto-3); font-variant-numeric: tabular-nums; }
+.cuenta-nodo span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cuenta-nodo .ico { width: 12px; height: 12px; }
+.cuenta-nodo.aviso { color: var(--aviso); }
+.barra-cuenta { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: transparent; }
+.barra-cuenta i { display: block; height: 100%; background: var(--acento); opacity: .7; transition: width 1s linear; }
+#nodos .detalle { background: var(--superficie-2); }
+
+/* apps: tarjetas algo más apretadas y la tabla de despliegues debajo */
+#apps .rejilla-apps { grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 10px; }
+#apps .servicio { min-height: 0; padding: 11px 14px; gap: 8px; background: var(--superficie-2); }
+#apps .servicio .icono-app { width: 32px; height: 32px; }
+.subtitulo-despliegues { display: flex; align-items: center; gap: 10px; margin: 20px 0 10px; }
+
+/* pods: subsección plegable con una tabla (una sola cabecera, filas bajas) */
+.sub-bloque { margin-top: 16px; border-top: 1px solid var(--borde); padding-top: 4px; }
+.sub-bloque > summary {
+  list-style: none; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 12px;
+  padding: 10px 0 6px; -webkit-tap-highlight-color: transparent;
+}
+.sub-bloque > summary::-webkit-details-marker { display: none; }
+.sub-bloque > summary .subtitulo { margin: 0; margin-right: auto; }
+.sub-bloque > summary::after {
+  content: ""; width: 6px; height: 6px; margin: 0 6px 3px 4px; flex: none;
+  border-right: 1.6px solid var(--texto-3); border-bottom: 1.6px solid var(--texto-3);
+  transform: rotate(45deg); transition: transform .2s ease;
+}
+.sub-bloque[open] > summary::after { transform: rotate(225deg); margin-bottom: -3px; }
+.sub-bloque > summary:hover .subtitulo { color: var(--texto); }
+.sub-bloque[open] > *:not(summary) { animation: abrir-bloque .2s ease; }
+.pods-opciones { display: flex; align-items: center; gap: 10px; margin: 2px 0 10px; font-size: .74rem; color: var(--texto-3); }
+.ver-sistema { margin-left: auto; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+.lista-pods { --cols-pod: minmax(0, 1.5fr) minmax(0, .9fr) 64px 76px 72px 78px 70px; }
+.pods-cabecera, .grupo-pods li { display: grid; grid-template-columns: var(--cols-pod); gap: 12px; align-items: center; }
+.pods-cabecera {
+  padding: 0 12px 6px; font-size: .62rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--texto-3); border-bottom: 1px solid var(--borde);
+}
+.grupo-pods h4 { display: flex; align-items: center; gap: 8px; margin: 12px 0 4px; padding: 0 4px; font-size: .8rem; font-weight: 600; }
+.grupo-pods h4 .punto { width: 7px; height: 7px; }
+.grupo-pods h4 small { color: var(--texto-3); font-weight: 500; font-size: .74rem; }
+.grupo-pods.dormido ul { opacity: .55; }
+.grupo-pods ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.grupo-pods li { padding: 6px 12px; border-radius: var(--radio-s); font-size: .82rem; min-height: 38px; }
+.grupo-pods li:nth-child(odd) { background: var(--superficie-2); }
+.grupo-pods li:hover { background: var(--superficie-3, var(--superficie-2)); }
+.grupo-pods li.rojo  { box-shadow: inset 3px 0 0 var(--mal); }
+.grupo-pods li.ambar { box-shadow: inset 3px 0 0 var(--aviso); }
+.pod-nombre { display: flex; align-items: center; gap: 8px; font-weight: 500; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pod-nombre .punto { width: 7px; height: 7px; }
+.pod-ns { color: var(--texto-3); font-size: .76rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pod-estado { font-size: .72rem; font-weight: 500; }
+.pod-estado.rojo { color: var(--mal); } .pod-estado.ambar { color: var(--aviso); } .pod-estado.gris { color: var(--texto-3); }
+.pod-col { font-variant-numeric: tabular-nums; color: var(--texto-2); }
+.pod-col.muchos { color: var(--aviso); }
+.punto.gris { background: var(--texto-3); }
+/* los botones aparecen al pasar por la fila (en pantallas táctiles, siempre) */
+@media (hover: hover) {
+  .grupo-pods li .pod-acciones { opacity: 0; transition: opacity .15s ease; }
+  .grupo-pods li:hover .pod-acciones, .grupo-pods li:focus-within .pod-acciones,
+  .grupo-pods li .pod-acciones:has(.confirmar, .trabajando, .fallo), .grupo-pods.parados .pod-acciones { opacity: 1; }
+}
+@media (max-width: 900px) {
+  /* en el móvil: servicio, CPU, memoria y botones */
+  .lista-pods { --cols-pod: minmax(0, 1fr) 46px 56px auto; }
+  .pods-cabecera > :nth-child(2), .pods-cabecera > :nth-child(5), .pods-cabecera > :nth-child(6),
+  .grupo-pods li > .pod-ns, .grupo-pods li > :nth-child(5), .grupo-pods li > :nth-child(6) { display: none; }
+}
+
+/* reiniciar / parar / arrancar: icono; al primer toque se abre y pide confirmación */
+.pod-acciones { display: flex; justify-content: flex-end; gap: 6px; }
+.accion-carga {
+  display: inline-flex; align-items: center; gap: 6px; height: 26px; min-width: 26px; padding: 0 6px;
+  border-radius: 999px; border: 1px solid var(--borde); background: transparent; color: var(--texto-3);
+  font: inherit; font-size: .74rem; cursor: pointer; transition: color .15s, border-color .15s, background .15s;
+}
+.accion-carga .ico { width: 13px; height: 13px; display: block; }
+.accion-carga span { display: none; white-space: nowrap; }
+.accion-carga:hover { color: var(--texto); border-color: var(--borde-fuerte); }
+.accion-carga.parar:hover, .accion-carga.parar.confirmar { color: var(--mal); border-color: color-mix(in srgb, var(--mal) 50%, transparent); }
+.accion-carga.arrancar:hover, .accion-carga.arrancar.confirmar { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+.accion-carga.reiniciar.confirmar { color: var(--acento); border-color: color-mix(in srgb, var(--acento) 50%, transparent); }
+.accion-carga.confirmar, .accion-carga.trabajando, .accion-carga.fallo { padding: 0 10px 0 8px; }
+.accion-carga.confirmar span, .accion-carga.trabajando span, .accion-carga.fallo span { display: inline; }
+.accion-carga.confirmar { background: var(--superficie-2); }
+.accion-carga.trabajando { cursor: wait; }
+.accion-carga.trabajando .ico { animation: girar 1s linear infinite; }
+.accion-carga.fallo { color: var(--mal); }
+@keyframes girar { to { transform: rotate(360deg); } }
+
+.grupo-pods ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.grupo-pods li {
+  display: grid; align-items: center; gap: 12px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, .9fr) 120px repeat(4, 76px) 132px;
+  padding: 7px 12px; border-radius: var(--radio-s); background: var(--superficie-2); font-size: .82rem;
+}
+.pod-nombre { display: flex; align-items: center; gap: 8px; font-weight: 500; min-width: 0; }
+.pod-nombre, .pod-ns { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pod-nombre .punto { width: 7px; height: 7px; }
+.pod-ns { color: var(--texto-3); font-size: .76rem; }
+.pod-estado { font-size: .76rem; color: var(--texto-2); }
+.pod-estado.rojo { color: var(--mal); } .pod-estado.ambar { color: var(--aviso); }
+.pod-col { font-variant-numeric: tabular-nums; color: var(--texto-2); }
+.pod-col small { display: block; font-size: .62rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--texto-3); }
+.punto.gris { background: var(--texto-3); }
+@media (max-width: 900px) {
+  /* en el móvil: nombre, estado, CPU y memoria */
+  .grupo-pods li { grid-template-columns: minmax(0, 1fr) auto 52px 58px auto; gap: 8px; padding: 7px 10px; }
+  .pod-ns, .grupo-pods li > :nth-child(6), .grupo-pods li > :nth-child(7) { display: none; }
+}
+
+/* ----------------------- secciones plegables ----------------------- */
+.plegable { padding: 0; }
+.plegable > details > summary {
+  list-style: none; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+  margin: 0; padding: 15px 18px; border-radius: var(--radio); flex-wrap: wrap;
+}
+.plegable > details > summary::-webkit-details-marker { display: none; }
+.plegable > details > summary h2 { margin-right: auto; transition: color .15s ease; }
+.plegable > details > summary:hover h2 { color: var(--acento); }
+.plegable > details > summary::after {
+  content: ""; flex: none; width: 7px; height: 7px; margin: 0 4px 3px 6px;
+  border-right: 1.7px solid var(--texto-3); border-bottom: 1.7px solid var(--texto-3);
+  transform: rotate(45deg); transition: transform .2s ease;
+}
+.plegable > details[open] > summary::after { transform: rotate(225deg); margin-bottom: -3px; }
+.plegable > details > summary:focus-visible { outline: 2px solid var(--acento); outline-offset: -2px; }
+
+.resumen-bloque { display: flex; align-items: center; gap: 8px; color: var(--texto-2); font-size: .82rem; }
+.resumen-bloque .punto { width: 8px; height: 8px; }
+.cuerpo-bloque { padding: 2px 18px 18px; }
+.panel-seguridad .cuerpo-bloque > .kpis { margin-bottom: 18px; }
+
+details.bloque[open] > .cuerpo-bloque { animation: abrir-bloque .22s ease; }
+@keyframes abrir-bloque { from { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { details.bloque[open] > .cuerpo-bloque { animation: none; } }
+
+@media (max-width: 720px) {
+  #nodos .nodo { padding: 10px 12px 9px; grid-template-columns: auto minmax(40px, 1fr); }
+  #nodos .nodo .metricas { gap: 2px 9px; flex-wrap: wrap; }
+  #nodos .nodo .metrica { font-size: .8rem; }
+  #nodos .nodo .minigrafica { height: 20px; }
+  #apps .servicio { padding: 10px 12px; }
+  .plegable > details > summary { padding: 13px 14px; }
+  .cuerpo-bloque { padding: 2px 14px 14px; }
+}
+
+
+/* ======================= gráficas de cada nodo (graficas.js) ======================= */
+.graf-panel { margin-top: 12px; padding: 14px 18px 18px; border-radius: var(--radio-s); background: var(--superficie-2);
+              border: 1px solid transparent; transition: border-color .2s ease; }
+.graf-panel[hidden] { display: none; }
+.graf-panel.pasado { border-color: color-mix(in srgb, var(--acento) 35%, transparent); }
+.graf-cab { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.graf-cab h3 { margin: 0 auto 0 0; font-size: .95rem; font-weight: 600; }
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--superficie-2); border: 1px solid var(--borde); }
+.seg[hidden] { display: none; }
+.seg button {
+  border: 0; background: transparent; color: var(--texto-2); font: inherit; font-size: .76rem; cursor: pointer;
+  padding: 4px 11px; border-radius: 999px; transition: background .15s, color .15s;
+}
+.seg button:hover { color: var(--texto); }
+.seg button.activo { background: var(--acento-suave); color: var(--acento); }
+
+/* qué día se está viendo: grande y claro, con flechas y "Volver a ahora" */
+.graf-dia { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.graf-dia[hidden] { display: none; }
+.dia-texto { display: flex; flex-direction: column; min-width: 13em; }
+.dia-texto strong { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; }
+.dia-texto span { font-size: .72rem; color: var(--texto-3); }
+.graf-panel.pasado .dia-texto strong { color: var(--acento); }
+.dia-flecha {
+  width: 32px; height: 32px; display: grid; place-items: center; flex: none; cursor: pointer; font: inherit; font-size: 1.15rem;
+  line-height: 1; border-radius: 50%; border: 1px solid var(--borde); background: transparent; color: var(--texto-2);
+  transition: color .15s, border-color .15s;
+}
+.dia-flecha:hover:not(:disabled) { color: var(--texto); border-color: var(--borde-fuerte); }
+.dia-flecha:disabled { opacity: .3; cursor: default; }
+.graf-dia .seg { margin-left: auto; }
+.volver-ahora {
+  margin-left: auto; height: 32px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: .8rem; font-weight: 600;
+  border: 1px solid color-mix(in srgb, var(--acento) 55%, transparent); background: var(--acento-suave); color: var(--acento);
+}
+.volver-ahora[hidden] { display: none; }
+.volver-ahora:hover { background: color-mix(in srgb, var(--acento) 24%, transparent); }
+
+.graf-pista { margin: 12px 0 6px; min-height: 1.3em; font-size: .74rem; color: var(--texto-3); font-variant-numeric: tabular-nums; }
+.graf-pista[hidden] { display: none; }
+.graf-pista strong { color: var(--texto); font-weight: 600; }
+.graf-pista .mini-boton { margin-left: 6px; }
+.leyenda-hueco { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 3px;
+                 background: color-mix(in srgb, var(--texto-3) 22%, transparent); }
+.graf-rejilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 26px 30px; }
+.graf-rejilla[hidden] { display: none; }
+.graf { min-width: 0; }
+.graf-titulo { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 4px;
+               font-size: .76rem; color: var(--texto-3); }
+.graf-titulo b { font-size: .9rem; font-weight: 600; color: var(--texto); font-variant-numeric: tabular-nums; }
+.graf-titulo b.cursor { color: var(--acento); }
+.graf-lienzo { width: 100%; min-width: 0; overflow: hidden; touch-action: pan-y; }   /* en el móvil, el dedo sigue moviendo la página */
+.graf-lienzo .uplot { font-family: inherit; }
+.graf-lienzo .u-select { background: color-mix(in srgb, var(--acento) 16%, transparent); }
+.graf-lienzo .u-cursor-x { border-right: 1px dashed color-mix(in srgb, var(--texto-3) 70%, transparent); }
+.graf-lienzo .u-cursor-y { display: none; }
+
+/* ======================= calendario: filas = máquinas, casillas = días ======================= */
+.calendario[hidden] { display: none; }
+.calendario { margin: 18px auto 0; max-width: 1180px; padding: 0 clamp(0px, 4vw, 56px); }   /* aire a los lados */
+.cal-cab { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.cal-cab strong { font-size: 1rem; font-weight: 600; text-transform: capitalize; min-width: 9em; text-align: center; }
+.cal-leyenda { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: .72rem; color: var(--texto-3); }
+.cal-escala { display: inline-block; width: 70px; height: 9px; border-radius: 3px;
+              background: linear-gradient(90deg, var(--superficie-3, var(--borde)), var(--acento)); }
+.cal-muestra-aprox { display: inline-block; width: 12px; height: 9px; border-radius: 3px; margin-left: 8px;
+                     background: color-mix(in srgb, var(--acento) 55%, var(--superficie-3, var(--borde)));
+                     background-image: repeating-linear-gradient(135deg, transparent 0 2px, rgba(0,0,0,.28) 2px 4px); }
+.cal-tabla { overflow-x: auto; padding-bottom: 4px; }
+.cal-fila {
+  display: grid; align-items: center; gap: 3px; min-width: calc(var(--dias) * 18px + 190px);
+  grid-template-columns: 82px repeat(var(--dias), minmax(14px, 1fr)) 90px;
+}
+.cal-fila + .cal-fila { margin-top: 4px; }
+.cal-nombre { font-size: .8rem; font-weight: 600; color: var(--texto-2); }
+.cal-fila.actual .cal-nombre { color: var(--acento); }
+.cal-total { font-size: .72rem; color: var(--texto-3); text-align: right; font-variant-numeric: tabular-nums; }
+.cal-encabezado { margin-bottom: 2px; }
+.cal-cabdia { display: flex; flex-direction: column; align-items: center; font-size: .7rem; font-weight: 600;
+              color: var(--texto-2); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.cal-cabdia small { font-size: .58rem; font-weight: 600; color: var(--texto-3); }
+.cal-cabdia.finde { color: var(--texto-3); }
+.cal-cabdia.hoy { color: var(--acento); }
+.cal-celda {
+  position: relative; overflow: hidden; height: 26px; padding: 0; border-radius: 4px; cursor: pointer;
+  border: 1px solid transparent; background: var(--superficie-3, var(--superficie-2));
+  transition: transform .12s ease, border-color .12s ease;
+}
+.cal-celda.on::after {
+  content: ""; position: absolute; inset: 0; background-color: var(--acento);
+  opacity: calc(.2 + var(--h) * .8);
+}
+.cal-celda.aprox::after { background-image: repeating-linear-gradient(135deg, transparent 0 2px, rgba(0,0,0,.3) 2px 4px); }
+.cal-celda.finde:not(.on) { opacity: .7; }
+.cal-celda.hoy { border-color: color-mix(in srgb, var(--acento) 70%, transparent); }
+.cal-celda.elegida { outline: 2px solid var(--texto); outline-offset: 1px; }
+.cal-celda:hover:not(:disabled) { transform: scale(1.12); border-color: var(--texto-2); }
+.cal-celda:disabled { opacity: .25; cursor: default; }
+.cal-nota { margin: 12px 0 0; font-size: .72rem; color: var(--texto-3); }
+@media (max-width: 720px) {
+  .graf-panel { padding: 12px; }
+  .graf-cab h3 { flex-basis: 100%; }
+  .graf-dia .seg, .volver-ahora { margin-left: 0; }
+  .dia-texto { min-width: 0; flex: 1; }
+  .cal-leyenda { margin-left: 0; }
+}
+
+/* ----- calendario anual: por máquina, semanas en columnas y días (L-D) en filas ----- */
+.cal-cab .seg { margin-right: 6px; }
+.anio-tabla { display: flex; flex-direction: column; gap: 20px; overflow-x: auto; padding: 2px 2px 6px; }
+.anio-maquina { min-width: calc(var(--semanas, 53) * 10px + 40px); }
+.anio-titulo { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+.anio-maquina.actual .cal-nombre { color: var(--acento); }
+/* las columnas (semanas) se reparten todo el ancho; cada día es un cuadrado */
+.anio-meses, .anio-rejilla { display: grid; grid-template-columns: repeat(var(--semanas), minmax(0, 1fr)); column-gap: 3px; }
+.anio-meses { font-size: .66rem; color: var(--texto-3); height: 16px; text-transform: capitalize; }
+.anio-meses span { white-space: nowrap; overflow: visible; }
+.anio-rejilla { grid-auto-flow: column; grid-template-rows: repeat(7, auto); row-gap: 3px; }
+.cal-celda.anio, .anio-vacia { width: 100%; height: auto; aspect-ratio: 1; border-radius: 3px; }
+.cal-celda.anio:hover:not(:disabled) { transform: scale(1.3); z-index: 1; }
+.cal-celda.anio:disabled { opacity: .12; }
+
+/* ======================= más contraste en controles y casillas vacías =======================
+   Sobre fondos con color (paletas con manchas), bordes y rellenos muy transparentes se perdían. */
+.dia-flecha, .ef-boton, .accion-carga, .bc-energia {
+  border-color: var(--borde-fuerte);
+  background: color-mix(in srgb, var(--texto) 6%, transparent);
+  color: var(--texto-2);
+}
+.dia-flecha { color: var(--texto); }
+.dia-flecha:disabled { opacity: .45; }
+.seg { border-color: var(--borde-fuerte); background: color-mix(in srgb, var(--texto) 6%, transparent); }
+.seg button { color: var(--texto); }
+.seg button:not(.activo) { opacity: .85; }
+.ef-grupo, .ef-grupo .ef-boton + .ef-boton { border-color: var(--borde-fuerte); }
+
+/* casillas sin actividad: visibles pero claramente "vacías" */
+.cal-celda { background: color-mix(in srgb, var(--texto) 11%, transparent); border-color: color-mix(in srgb, var(--texto) 6%, transparent); }
+.cal-celda.finde:not(.on) { opacity: 1; background: color-mix(in srgb, var(--texto) 8%, transparent); }
+.cal-celda:disabled, .cal-celda.anio:disabled { opacity: .4; }
+.cal-celda.on::after { opacity: calc(.3 + var(--h) * .7); }
+.cal-escala { background: linear-gradient(90deg, color-mix(in srgb, var(--texto) 11%, transparent), var(--acento)); }
+.cal-cabdia, .anio-meses, .cal-total, .cal-leyenda, .cal-nota { color: var(--texto-2); }
+.cal-cabdia small { color: var(--texto-2); opacity: .8; }
+
+/* textos secundarios de las gráficas, un punto más legibles */
+.graf-titulo, .graf-pista, .dia-texto span { color: var(--texto-2); }
+
+
+/* ======================= barra de arriba: nodos con más aire y tarjeta teñida (prueba) =======================
+   Para volver atrás: borrar este bloque. */
+.bc-nodo { height: 44px; padding: 0 8px 0 13px; gap: 9px; font-size: .86rem;
+           transition: border-color .2s ease, background .2s ease, box-shadow .2s ease; }
+.bc-nodo.encendido {
+  background: color-mix(in srgb, var(--ok) 13%, var(--superficie-2));
+  border-color: color-mix(in srgb, var(--ok) 38%, transparent);
+  box-shadow: inset 0 0 18px -8px color-mix(in srgb, var(--ok) 55%, transparent);
+}
+.bc-nodo.apagado {
+  background: color-mix(in srgb, var(--mal) 9%, var(--superficie-2));
+  border-color: color-mix(in srgb, var(--mal) 28%, transparent);
+}
+.bc-nodo.encendido:hover { border-color: color-mix(in srgb, var(--ok) 60%, transparent); }
+.bc-nodo.apagado:hover   { border-color: color-mix(in srgb, var(--mal) 50%, transparent); }
+.bc-nodo.seleccionada { box-shadow: 0 0 0 2px color-mix(in srgb, var(--acento) 55%, transparent); }
+@media (max-width: 720px) {
+  .bc-nodo { height: 38px; padding: 0 5px 0 9px; gap: 6px; font-size: .78rem; }
+}
+
+/* la línea "Todo correcto · n de 3 máquinas…" fuera de momento (panel.js la sigue calculando) */
+#estado-general { display: none; }
+
+/* ======================= cabeceras de sección: un indicador igual para todas ======================= */
+.plegable > details > summary .etiqueta-estado { display: none; }   /* panel.js las sigue rellenando; el resumen sale de ahí */
+.resumen-bloque {
+  display: inline-flex; align-items: center; gap: 8px; min-width: 8.5em; justify-content: flex-end;
+  font-size: .8rem; font-weight: 500; color: var(--texto-2); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.resumen-bloque .punto { width: 8px; height: 8px; order: -1; }
+
+/* ======================= candado y encendido en cada nodo ======================= */
+.bc-botones, .tn-botones { display: inline-flex; gap: 5px; flex: none; }
+.nodo-boton {
+  width: 28px; height: 28px; display: grid; place-items: center; flex: none; padding: 0; cursor: pointer;
+  border-radius: 50%; border: 1px solid var(--borde-fuerte); background: color-mix(in srgb, var(--texto) 6%, transparent);
+  color: var(--texto-2); transition: color .15s, border-color .15s, background .15s;
+}
+.nodo-boton .ico { width: 14px; height: 14px; display: block; }
+.nodo-boton:hover:not(:disabled) { color: var(--texto); border-color: var(--texto-3); }
+.nodo-boton:disabled { opacity: .45; cursor: default; }
+.nodo-boton.candado.cerrado {                                     /* retenido: en el color de acento */
+  color: var(--acento); border-color: color-mix(in srgb, var(--acento) 60%, transparent); background: var(--acento-suave);
+}
+.nodo-boton.encender:hover:not(:disabled) { color: var(--ok);  border-color: color-mix(in srgb, var(--ok) 55%, transparent); }
+.nodo-boton.apagar:hover:not(:disabled)   { color: var(--mal); border-color: color-mix(in srgb, var(--mal) 55%, transparent); }
+/* en las tarjetas de Nodos, arriba a la derecha tras el punto de estado */
+#nodos .nodo .tarjeta-cab { gap: 8px; }
+#nodos .nodo .tn-botones { order: 3; margin-left: 4px; }
+@media (max-width: 720px) {
+  .nodo-boton { width: 26px; height: 26px; }
+  .bc-cuenta { display: none; }                                   /* en el móvil, la cuenta atrás no cabe en la barra */
+}
+
+/* ======================= sección Nodos: tarjetas teñidas, selección clara y bloque Clúster ======================= */
+/* tarjetas de nodo, teñidas como en la barra de arriba */
+#nodos .nodo[data-encendido="si"] {
+  background: color-mix(in srgb, var(--ok) 10%, var(--superficie-2));
+  border-color: color-mix(in srgb, var(--ok) 32%, transparent);
+}
+#nodos .nodo[data-encendido="no"] {
+  background: color-mix(in srgb, var(--mal) 7%, var(--superficie-2));
+  border-color: color-mix(in srgb, var(--mal) 24%, transparent);
+}
+#nodos .nodo:hover { border-color: var(--texto-3); }
+/* la seleccionada (gráficas abiertas): solo el borde, en el color de acento */
+#nodos .nodo.seleccionada {
+  border-color: color-mix(in srgb, var(--acento) 75%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--acento) 40%, transparent);
+}
+/* el texto de las tarjetas, siempre claro y opaco, esté seleccionada, encendida o dormida */
+#nodos .nodo, #nodos .nodo h2, #nodos .nodo .metrica .valor { color: var(--texto); opacity: 1; }
+
+/* panel de gráficas: unido visualmente al nodo elegido */
+.graf-panel { border-top: 3px solid var(--acento); }
+.graf-cab h3::after { content: " · gráficas"; color: var(--texto-3); font-weight: 500; }
+
+/* bloque desplegable "Clúster": una tarjeta con cara de botón */
+.sub-bloque.bloque-pods {
+  margin-top: 16px; padding: 0; border-top: 0;
+  border: 1px solid var(--borde-fuerte); border-radius: var(--radio-s);
+  background: color-mix(in srgb, var(--texto) 4%, var(--superficie-2));
+  transition: border-color .15s ease;
+}
+.sub-bloque.bloque-pods:hover { border-color: var(--texto-3); }
+.sub-bloque.bloque-pods[open] { border-color: color-mix(in srgb, var(--acento) 45%, transparent); }
+.sub-bloque.bloque-pods > summary { padding: 12px 12px 12px 16px; gap: 16px; }
+.sub-bloque.bloque-pods > summary::after { display: none; }
+.sub-bloque.bloque-pods > :not(summary) { margin-left: 16px; margin-right: 16px; }
+.sub-bloque.bloque-pods > .lista-pods { padding-bottom: 14px; }
+.cl-titulo { font-size: .92rem; font-weight: 600; }
+.cl-datos { display: flex; gap: 6px 16px; flex-wrap: wrap; margin-right: auto; font-size: .8rem; color: var(--texto-2);
+            font-variant-numeric: tabular-nums; }
+.cl-abrir {                                     /* botón redondo con la flecha: deja claro que se despliega */
+  width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  border: 1px solid var(--borde-fuerte); background: color-mix(in srgb, var(--texto) 6%, transparent);
+  transition: background .15s ease, border-color .15s ease;
+}
+.cl-abrir::before {
+  content: ""; width: 7px; height: 7px; margin-top: -3px;
+  border-right: 1.8px solid var(--texto); border-bottom: 1.8px solid var(--texto);
+  transform: rotate(45deg); transition: transform .2s ease, margin .2s ease;
+}
+.sub-bloque.bloque-pods[open] .cl-abrir::before { transform: rotate(225deg); margin-top: 3px; }
+.sub-bloque.bloque-pods > summary:hover .cl-abrir { border-color: var(--acento); background: var(--acento-suave); }
+@media (max-width: 720px) {
+  .sub-bloque.bloque-pods > summary { flex-wrap: wrap; gap: 6px 12px; }
+  .cl-datos { order: 5; flex-basis: 100%; }
+}
+
+/* ======================= ajustes: día pasado y contraste encendido / apagado =======================
+   Mirando un día pasado, el panel conserva su franja superior de acento (no se enmarca entero). */
+.graf-panel.pasado { border-color: transparent; border-top-color: var(--acento); }
+
+/* Encendido / apagado más marcado: con los temas de paleta (Lima, etc.) el 7-10 % casi no se veía */
+.bc-nodo.encendido, #nodos .nodo[data-encendido="si"] {
+  background: color-mix(in srgb, var(--ok) 20%, var(--superficie-2));
+  border-color: color-mix(in srgb, var(--ok) 60%, transparent);
+}
+.bc-nodo.apagado, #nodos .nodo[data-encendido="no"] {
+  background: color-mix(in srgb, var(--mal) 17%, var(--superficie-2));
+  border-color: color-mix(in srgb, var(--mal) 50%, transparent);
+}
+.bc-nodo.encendido:hover, #nodos .nodo[data-encendido="si"]:hover { border-color: var(--ok); }
+.bc-nodo.apagado:hover,   #nodos .nodo[data-encendido="no"]:hover { border-color: var(--mal); }
+/* la seleccionada se sigue distinguiendo encima del tinte: borde de acento algo más grueso */
+#nodos .nodo.seleccionada, .bc-nodo.seleccionada {
+  border-color: var(--acento);
+  box-shadow: inset 0 0 0 1px var(--acento);
+}
+
+/* ======================= temas del escáner: encendido / apagado como en los temas del panel =======================
+   Lima se queda con sus propios colores (con el ajuste general de arriba: así estaba bien).
+   El resto usa el mismo verde y rojo que los temas del panel, sobre transparente porque su
+   fondo de casilla es blanquecino y lavaba el tinte. */
+html[data-paleta]:not([data-paleta="lima"]) { --ok-nodo: #32d17a; --mal-nodo: #ff4d4f; }
+html[data-paleta][data-tema="claro"]:not([data-paleta="lima"]) { --ok-nodo: #1fa760; --mal-nodo: #e5383b; }
+html[data-paleta]:not([data-paleta="lima"]) :is(.bc-nodo.encendido, #nodos .nodo[data-encendido="si"]) {
+  background: color-mix(in srgb, var(--ok-nodo) 20%, transparent);
+  border-color: color-mix(in srgb, var(--ok-nodo) 60%, transparent);
+}
+html[data-paleta]:not([data-paleta="lima"]) :is(.bc-nodo.apagado, #nodos .nodo[data-encendido="no"]) {
+  background: color-mix(in srgb, var(--mal-nodo) 17%, transparent);
+  border-color: color-mix(in srgb, var(--mal-nodo) 50%, transparent);
+}
+html[data-paleta]:not([data-paleta="lima"]) :is(.bc-nodo.encendido, #nodos .nodo[data-encendido="si"]):hover { border-color: var(--ok-nodo); }
+html[data-paleta]:not([data-paleta="lima"]) :is(.bc-nodo.apagado, #nodos .nodo[data-encendido="no"]):hover { border-color: var(--mal-nodo); }
+/* el punto de estado de esas tarjetas, del mismo color que su tinte */
+html[data-paleta]:not([data-paleta="lima"]) :is(.bc-nodo, #nodos .nodo) .punto.verde { background: var(--ok-nodo); }
+html[data-paleta]:not([data-paleta="lima"]) :is(.bc-nodo, #nodos .nodo) .punto.rojo  { background: var(--mal-nodo); }
+/* la seleccionada sigue por encima */
+html[data-paleta] :is(#nodos .nodo.seleccionada, .bc-nodo.seleccionada) {
+  border-color: var(--acento); box-shadow: inset 0 0 0 1px var(--acento);
+}
+
+/* ======================= móvil: cabecera, nodos y apps sin solaparse ======================= */
+@media (max-width: 720px) {
+  /* cabecera: reloj y fecha en una sola línea compacta, botones algo más pequeños */
+  .cabecera { grid-template-columns: minmax(0, 1fr) auto; row-gap: 10px; column-gap: 10px; padding: 10px 12px; }
+  .reloj-caja { min-width: 0; gap: 10px; }
+  .reloj { font-size: 1.55rem; }
+  .fecha-tiempo { min-width: 0; }
+  .fecha, .tiempo { font-size: .72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tiempo .icono-tiempo { width: 13px; height: 13px; }
+  .acciones-cabecera { gap: 6px; }
+  .acciones-cabecera .boton-icono { width: 34px; height: 34px; }
+
+  /* la barra de secciones fuera: en el móvil, las secciones plegadas ya hacen de índice */
+  .navegacion { display: none; }
+  .barra-rapida { grid-row: 2; padding-top: 10px; gap: 8px; }
+
+  /* nodos: nombre arriba, botones debajo; las tres del mismo alto */
+  .bc-nodos { gap: 6px; align-items: stretch; }
+  .bc-nodo {
+    height: auto; min-height: 40px; padding: 7px 7px 7px 9px;
+    display: flex; flex-wrap: wrap; align-content: center; gap: 6px; font-size: .8rem;
+  }
+  .bc-nombre { flex: 1 1 0; }
+  .bc-botones { flex-basis: 100%; justify-content: flex-start; gap: 6px; }
+  .bc-nodo .nodo-boton { width: 30px; height: 30px; }
+
+  /* apps: las seis caben a la vez, cada una en su columna */
+  .bc-apps {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(46px, 1fr)); gap: 4px;
+    overflow: visible; padding: 10px 0 0;
+  }
+  .bc-app { width: auto; min-width: 0; }
+  .bc-app .icono-app { width: 32px; height: 32px; }
+  .bc-app-nombre { font-size: .58rem; }
+}
+
+/* ======================= móvil: nodos de la barra en vertical y gráficas compactas ======================= */
+@media (max-width: 720px) {
+  /* nodos de la barra: uno debajo de otro, como en la sección Nodos */
+  .bc-nodos { grid-template-columns: 1fr; gap: 6px; }
+  .bc-nodo { flex-wrap: nowrap; min-height: 42px; padding: 0 6px 0 12px; gap: 8px; font-size: .84rem; }
+  .bc-nombre { flex: 1 1 auto; }
+  .bc-botones { flex-basis: auto; margin-left: auto; }
+  .bc-cuenta { display: inline; font-size: .72rem; }        /* ahora sí cabe la cuenta atrás */
+
+  /* gráficas: cabecera recogida y dos columnas pequeñas */
+  .graf-panel { padding: 10px 10px 12px; }
+  .graf-cab { gap: 8px; }
+  .graf-cab h3 { flex-basis: auto; font-size: .9rem; }
+  .graf-cab h3::after { content: none; }
+  .graf-cab .seg button { padding: 3px 9px; font-size: .72rem; }
+  .graf-dia { margin-top: 10px; gap: 6px; flex-wrap: nowrap; }
+  .dia-flecha { width: 28px; height: 28px; font-size: 1rem; }
+  .dia-texto { min-width: 0; }
+  .dia-texto strong { font-size: .86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dia-texto span { display: none; }
+  .graf-dia .seg { margin-left: auto; }
+  .graf-dia .seg button { padding: 3px 8px; font-size: .72rem; }
+  .volver-ahora { margin-left: auto; height: 28px; padding: 0 10px; font-size: .72rem; white-space: nowrap; }
+  .graf-pista { display: none; }                              /* en el móvil no hay ratón: sobra la ayuda */
+  .graf-rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 10px; margin-top: 8px; }
+  .graf-titulo { font-size: .66rem; margin-bottom: 0; }
+  .graf-titulo b { font-size: .78rem; }
+}
+
+/* ======================= cabeceras de sección enganchadas al hacer scroll ======================= */
+.plegable > details > summary {
+  position: sticky; top: var(--tope-seccion, 96px); z-index: 6;
+  transition: padding .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+
+/* nodos de la barra de arriba, más bajos */
+.bc-nodo { height: 38px; }
+.bc-nodo .nodo-boton { width: 26px; height: 26px; }
+.bc-nodo .nodo-boton .ico { width: 13px; height: 13px; }
+@media (max-width: 720px) {
+  .bc-nodos { gap: 4px; }
+  .bc-nodo { min-height: 34px; height: 34px; }
+  .bc-nodo .nodo-boton { width: 26px; height: 26px; }
+  .barra-rapida { padding-top: 8px; }
+}
+
+/* ============ cabecera enganchada: sin máscaras, sin cambios de tamaño ============
+   - Nada cambia de alto al engancharse (antes cambiaba el relleno: eso movía el contenido
+     y hacía parpadear el inicio). Los bordes son sombras interiores: no ocupan sitio.
+   - Fondo opaco del color de la tarjeta: lo que pasa por detrás no se ve.
+   - Encima del tope, una capa fija con el fondo de la página tapa el contenido (incluido el
+     hueco con la barra de arriba). Es fija y la mueve el navegador: sin retraso. */
+.plegable > details > summary { transition: none; }
+/* Enganchada: vidrio como el resto de tarjetas, por encima de la capa que tapa el contenido.
+   Esa capa (.tapa) baja hasta el borde inferior de la cabecera mientras haya una enganchada,
+   así lo que pasa por detrás no se ve pero el fondo de la página (manchas incluidas) sí. */
+.plegable > details[open] > summary.pegado {
+  z-index: 8;
+  background: var(--superficie);
+  backdrop-filter: blur(var(--desenfoque)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--desenfoque)) saturate(140%);
+  border-radius: var(--radio) var(--radio) 0 0;
+  box-shadow:
+    inset 0 1px 0 var(--borde-vidrio, var(--borde)),
+    inset 0 -1px 0 var(--borde);
+  transition: border-radius .12s ease;
+}
+/* final del bloque: la cabecera es el cierre de la tarjeta, con las cuatro esquinas redondeadas */
+.plegable > details[open] > summary.pegado.final {
+  border-radius: var(--radio);
+  box-shadow: inset 0 0 0 1px var(--borde-vidrio, var(--borde));
+}
+main { -webkit-mask-image: none; mask-image: none; }
+.tapa {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 7; pointer-events: none; overflow: hidden;
+  height: var(--tope-seccion, 0px);
+  background: var(--fondo-img, none), var(--fondo);
+  background-attachment: fixed;
+}
+body:has(summary.pegado) .tapa { height: calc(var(--tope-seccion, 0px) + var(--alto-pegado, 0px)); }
+.tapa > .manchas { position: absolute; inset: auto; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
+
+/* El vidrio de las tarjetas plegables va en una capa aparte (::before). Con el desenfoque en la
+   propia tarjeta, la tarjeta encierra a sus hijos en su propia "capa" y la cabecera enganchada
+   no podía quedar por encima de .tapa (por eso desaparecía). Así se ve igual y la cabecera sí
+   puede subir por encima. */
+.tarjeta.vidrio.plegable {
+  position: relative;
+  background: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.tarjeta.vidrio.plegable::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  border-radius: inherit;
+  background: var(--superficie);
+  backdrop-filter: blur(var(--desenfoque)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--desenfoque)) saturate(140%);
+}
+
+/* Al final del bloque, la sombra de la tarjeta asomaba por debajo de la capa que tapa el
+   contenido y se veía cortada (y escondía las esquinas redondeadas de la cabecera).
+   Mientras la cabecera hace de cierre, la tarjeta no proyecta sombra. */
+.tarjeta.plegable { transition: box-shadow .15s ease; }
+.tarjeta.plegable:has(> details > summary.final) { box-shadow: none; }
+/* la sombra de las tarjetas plegables quedaba cortada en recto por la capa de arriba: fuera */
+.tarjeta.vidrio.plegable { box-shadow: none; }
+/* en el cierre, la capa de arriba tapa también el resto de tarjeta que queda bajo la cabecera */
+body:has(summary.final) .tapa { height: calc(var(--tope-seccion, 0px) + var(--alto-pegado, 0px) + var(--radio, 14px) + 3px); }
+
+/* La barra de arriba empezaba 12 px abajo y se enganchaba a 10 px: al empezar el scroll subía
+   esos 2 px. Ahora empieza exactamente donde se engancha y no se mueve nada. */
+.cabecera { margin-top: max(10px, env(safe-area-inset-top)); }
+
+/* ======================= móvil: los tres nodos de la barra en una sola fila =======================
+   Punto, nombre y botones en la misma línea. Para que quepa sin cortar texto:
+   - la Pi (sin botones) es una ficha estrecha con "Pi" (data-corto, lo pone compacto.js);
+   - Faraday y Mustang se reparten el resto del ancho a partes iguales;
+   - la cuenta atrás en texto se cambia por una barra fina en el borde de abajo;
+   - si la ficha queda estrecha (móviles reales de ~360-400 px), modo más apretado (@container).
+   Por debajo de 350 px vuelven a ir uno debajo de otro. Para volver atrás: borrar este bloque. */
+@media (max-width: 720px) and (min-width: 350px) {
+  .bc-nodos { display: flex; gap: 5px; }
+  .bc-nodo {
+    flex: 1 1 0; min-width: 0; position: relative; overflow: hidden; flex-wrap: nowrap;
+    height: 38px; min-height: 0; padding: 0 4px 0 8px; gap: 4px; font-size: .78rem;
+  }
+  .bc-nodo:not([data-nodo="pi-master"]) { container-type: inline-size; }
+  .bc-nodo[data-nodo="pi-master"] { flex: none; padding: 0 13px; gap: 6px; justify-content: center; }
+  .bc-nodo .punto { width: 7px; height: 7px; flex: none; }
+  .bc-nombre { flex: 1 1 auto; margin: 0; }
+  .bc-nodo[data-nodo="pi-master"] .bc-nombre { flex: none; }
+  .bc-nombre[data-corto] { font-size: 0; }
+  .bc-nombre[data-corto]::before { content: attr(data-corto); font-size: .78rem; }
+  .bc-botones { flex: none; margin: 0; gap: 2px; }
+  .bc-nodo .nodo-boton { width: 24px; height: 24px; }
+  .bc-nodo .nodo-boton .ico { width: 12px; height: 12px; }
+  .bc-cuenta { display: none; }
+  .bc-nodo::after {
+    content: ""; position: absolute; left: 0; bottom: 0; height: 2px;
+    width: calc(var(--queda, 0) * 100%); background: var(--acento); opacity: .8; transition: width 1s linear;
+  }
+}
+/* ficha estrecha: botones y letra algo menores para que el nombre quepa entero */
+@container (max-width: 145px) {
+  .bc-nodo .nodo-boton { width: 22px; height: 22px; }
+  .bc-nodo .nodo-boton .ico { width: 11px; height: 11px; }
+  .bc-nodo .bc-nombre { font-size: .74rem; letter-spacing: -.01em; }
+}
+@container (max-width: 125px) {
+  .bc-nodo .bc-nombre { font-size: .7rem; }
+  .bc-nodo .nodo-boton { width: 20px; height: 20px; }
+}
+
+/* ======================= gráficas: valor actual + máximo del tramo ======================= */
+.graf-cifras { display: inline-flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+.graf-titulo small { font-size: .72rem; color: var(--texto-2); font-variant-numeric: tabular-nums; }
+.graf-titulo small:empty { display: none; }
+
+/* ======================= móvil: gráficas a lo ancho, finas, con un solo eje de tiempo =======================
+   Una debajo de otra; solo la última lleva las horas (graficas.js). La pista vuelve a verse: al tocar
+   una gráfica dice la hora del punto, y si no, cuánto rato estuvo apagada. */
+@media (max-width: 720px) {
+  .graf-rejilla { grid-template-columns: 1fr; gap: 7px; margin-top: 6px; }
+  .graf-titulo { font-size: .7rem; margin-bottom: 1px; padding: 0 2px; }
+  .graf-titulo b { font-size: .8rem; }
+  .graf-titulo small { font-size: .66rem; }
+  .graf-pista:not([hidden]) { display: block; margin: 6px 2px 0; min-height: 1.2em; font-size: .68rem; }
+
+  /* calendario: sin margen lateral y cabecera recogida */
+  .calendario { padding: 0; margin-top: 12px; }
+  .cal-cab { gap: 6px; margin-bottom: 10px; }
+  .cal-cab strong { min-width: 0; flex: 1; font-size: .9rem; }
+  .cal-leyenda { flex-basis: 100%; justify-content: flex-end; font-size: .66rem; }
+  .cal-escala { width: 50px; }
+
+  /* mes: dos tramos de 16 días, sin columna de totales (van en el resumen de abajo) */
+  .cal-tabla { overflow: visible; padding: 0; }
+  .cal-tabla + .cal-tabla { margin-top: 12px; }
+  .cal-fila { min-width: 0; gap: 2px; grid-template-columns: 54px repeat(var(--dias), minmax(0, 1fr)); }
+  .cal-fila + .cal-fila { margin-top: 3px; }
+  .cal-nombre { font-size: .7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-cabdia { font-size: .6rem; }
+  .cal-cabdia small { font-size: .5rem; }
+  .cal-celda { height: 22px; border-radius: 3px; }
+  .cal-resumen { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 12px 0 0; font-size: .7rem; color: var(--texto-2);
+                 font-variant-numeric: tabular-nums; }
+  .cal-resumen b { font-weight: 600; color: var(--texto); }
+
+  /* año: por máquina, filas = meses y columnas = días */
+  .anio-tabla { gap: 16px; overflow: visible; padding: 0; }
+  .anio-maquina.movil { min-width: 0; }
+  .anio-dias { display: grid; grid-template-columns: 24px repeat(31, minmax(0, 1fr)); gap: 2px 1px; align-items: center; }
+  .anio-dias > span:not(.anio-mes):not(.anio-vacia) { font-size: .5rem; color: var(--texto-3); text-align: left;
+                                                     line-height: 1.4; white-space: nowrap; overflow: visible; }
+  .anio-mes { font-size: .56rem; color: var(--texto-2); text-transform: capitalize; line-height: 1; }
+  .anio-dias .anio-vacia { visibility: hidden; }
+  .anio-dias .cal-celda.anio { border-radius: 2px; }
+  .anio-dias .cal-celda.anio:hover:not(:disabled) { transform: none; }
+}
+
+/* ======================= barras de desplazamiento acordes con el tema =======================
+   Finas, del color de acento y sobre fondo transparente (historial forense, listas, tablas). */
+body * { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--acento) 45%, transparent) transparent; }
+body *:hover { scrollbar-color: color-mix(in srgb, var(--acento) 70%, transparent) transparent; }
+body *::-webkit-scrollbar { width: 8px; height: 8px; }
+body *::-webkit-scrollbar-track { background: transparent; }
+body *::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--acento) 45%, transparent); border-radius: 999px;
+                                  border: 2px solid transparent; background-clip: padding-box; }
+body *::-webkit-scrollbar-thumb:hover { background-color: color-mix(in srgb, var(--acento) 70%, transparent); }
+body *::-webkit-scrollbar-button { display: none; }
+
+/* barra de secciones: el foco con teclado, en el color del panel */
+.navegacion a:focus-visible { outline: 2px solid color-mix(in srgb, var(--acento) 70%, transparent); outline-offset: -2px; }
+
+/* ======================= capa de arriba (.tapa) sin sombra a pantalla completa =======================
+   La capa medía solo lo que tapa (unos 100 px) y recortaba con overflow. Con la ventana grande, el
+   navegador desenfocaba las manchas de la copia ya recortadas y el borde salía oscuro, como una
+   sombra. Ahora la capa ocupa toda la pantalla (la copia del fondo se pinta entera, igual que la de
+   verdad) y se recorta con clip-path a la misma altura de antes. La copia, además, mide exactamente
+   lo mismo que el fondo original (sin contar la barra de desplazamiento). */
+.tapa, body:has(summary.pegado) .tapa, body:has(summary.final) .tapa { height: 100vh; }
+.tapa { --alto-tapa: var(--tope-seccion, 0px); clip-path: inset(0 0 calc(100% - var(--alto-tapa)) 0); }
+body:has(summary.pegado) .tapa { --alto-tapa: calc(var(--tope-seccion, 0px) + var(--alto-pegado, 0px)); }
+body:has(summary.final) .tapa  { --alto-tapa: calc(var(--tope-seccion, 0px) + var(--alto-pegado, 0px) + var(--radio, 14px) + 3px); }
+.tapa > .manchas { inset: 0; width: auto; height: auto; }

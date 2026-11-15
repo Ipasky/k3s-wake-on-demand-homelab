@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#
+# wakeonlan-registro: se instala como /usr/local/bin/wakeonlan, por delante del de verdad.
+# Antes de enviar el paquete deja en el registro QUIÉN lo pide (la cadena de procesos), y
+# luego llama al wakeonlan del sistema con los mismos argumentos.
+#     journalctl -t wakeonlan
+#
+cadena="" p=$PPID
+for _ in 1 2 3 4 5; do
+  [[ -r /proc/$p/cmdline ]] || break
+  c=$(tr '\0' ' ' < "/proc/$p/cmdline")
+  cadena+="${c% } ← "
+  p=$(awk '/^PPid:/ {print $2}' "/proc/$p/status" 2>/dev/null)
+  [[ -z "$p" || "$p" -le 1 ]] && break
+done
+logger -t wakeonlan -- "paquete a $* · pedido por: ${cadena% ← }"
+exec /usr/bin/wakeonlan "$@"

@@ -1,0 +1,7 @@
+[Unit]
+Description=Recoger los resúmenes SMART de los nodos
+
+[Service]
+Type=oneshot
+User=raspberrypi
+ExecStart=/usr/local/bin/recoger-smart

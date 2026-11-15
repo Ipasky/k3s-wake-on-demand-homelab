@@ -1,0 +1,9 @@
+[Unit]
+Description=Copia de seguridad diaria de la configuración del clúster
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

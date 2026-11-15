@@ -1,0 +1,19 @@
+# /etc/crowdsec/parsers/s02-enrich/whitelist-hpc.yaml
+# Mis propios equipos: nunca generan alertas ni pueden acabar bloqueados.
+# Los demás aparatos de casa SÍ se vigilan (un dispositivo comprometido es justo
+# uno de los casos que interesa detectar).
+name: hpc/whitelist-propia
+description: "Equipos de administración y redes internas del clúster"
+whitelist:
+  reason: "equipos propios del HPC"
+  ip:
+    - "127.0.0.1"
+    - "::1"
+    - "@@IP_PI@@"     # pi-master
+    - "@@IP_FARADAY@@"     # faraday
+    - "@@IP_MUSTANG@@"     # mustang
+    - "@@IP_ADMIN@@"    # Windows de administración
+  cidr:
+    - "@@RED_VPN@@"    # VPN (mis dispositivos)
+    - "10.42.0.0/16"     # pods de K3s
+    - "10.43.0.0/16"     # servicios de K3s

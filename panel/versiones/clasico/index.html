@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="es" data-tema="oscuro" data-acento="azul">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials">
+<link rel="icon" type="image/png" sizes="192x192" href="/static/icono-192.png">
+<link rel="apple-touch-icon" href="/static/icono-apple-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HPC">
+<title>Panel HPC (clásico)</title>
+<link rel="preload" href="/static/fuente-dm-sans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/estilo.css">
+<link rel="stylesheet" href="/static/paletas.css">
+</head>
+<body>
+
+<!-- Fondo de las paletas del escáner (solo se ve con una de ellas activa) -->
+<div class="manchas" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i><i class="b5"></i><i class="b6"></i></div>
+
+<svg class="sprite" aria-hidden="true">
+  <symbol id="i-cpu" viewBox="0 0 24 24">
+    <rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="4" y="4" width="16" height="16" rx="2.5"/>
+    <path d="M9 1.8v2.2M12 1.8v2.2M15 1.8v2.2M9 20v2.2M12 20v2.2M15 20v2.2M1.8 9h2.2M1.8 12h2.2M1.8 15h2.2M20 9h2.2M20 12h2.2M20 15h2.2"/>
+  </symbol>
+  <symbol id="i-temp" viewBox="0 0 24 24">
+    <path d="M14 14.8V5a2 2 0 1 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M12 9v6"/>
+  </symbol>
+  <symbol id="i-ram" viewBox="0 0 24 24">
+    <rect x="2.5" y="7" width="19" height="10" rx="2"/><path d="M7 17v2.5M12 17v2.5M17 17v2.5M7 10.5v3M12 10.5v3M17 10.5v3"/>
+  </symbol>
+  <symbol id="i-disco" viewBox="0 0 24 24">
+    <ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>
+  </symbol>
+  <symbol id="i-red" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9S14.5 18.3 12 21c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/>
+  </symbol>
+  <symbol id="i-carga" viewBox="0 0 24 24"><path d="M3 15l4.5-6 4 4.5L15 8l6 7"/></symbol>
+  <symbol id="i-tema" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></symbol>
+  <symbol id="i-fondo" viewBox="0 0 24 24">
+    <path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.9 1.2-1.8l-.4-.9c-.4-.9.2-1.8 1.2-1.8H16a5 5 0 0 0 5-5c0-4.7-4-8.5-9-8.5z"/>
+    <circle cx="7.5" cy="11" r="1.2" fill="currentColor"/><circle cx="10.5" cy="7" r="1.2" fill="currentColor"/><circle cx="15" cy="7.5" r="1.2" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-sol" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.6M12 19.4V22M2 12h2.6M19.4 12H22M4.9 4.9l1.9 1.9M17.2 17.2l1.9 1.9M19.1 4.9l-1.9 1.9M6.8 17.2l-1.9 1.9"/>
+  </symbol>
+  <symbol id="i-nube" viewBox="0 0 24 24"><path d="M7 18h9.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.7A3.5 3.5 0 0 0 7 18z"/></symbol>
+  <symbol id="i-nubesol" viewBox="0 0 24 24">
+    <circle cx="8" cy="8" r="3"/><path d="M8 2.5v1.4M2.5 8h1.4M4.3 4.3l1 1M11.7 4.3l-1 1"/>
+    <path d="M9 19h8a3.5 3.5 0 0 0 .3-7 5 5 0 0 0-9.6 1.4A3 3 0 0 0 9 19z"/>
+  </symbol>
+  <symbol id="i-lluvia" viewBox="0 0 24 24">
+    <path d="M7 15h9.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.7A3.5 3.5 0 0 0 7 15z"/><path d="M8 18.5l-1 2.5M12 18.5l-1 2.5M16 18.5l-1 2.5"/>
+  </symbol>
+  <symbol id="i-tormenta" viewBox="0 0 24 24">
+    <path d="M7 14h9.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.7A3.5 3.5 0 0 0 7 14z"/><path d="M13 16l-3 4h3l-1 3"/>
+  </symbol>
+  <symbol id="i-nieve" viewBox="0 0 24 24">
+    <path d="M7 15h9.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.7A3.5 3.5 0 0 0 7 15z"/><path d="M9 19h.01M12 20.5h.01M15 19h.01"/>
+  </symbol>
+  <symbol id="i-niebla" viewBox="0 0 24 24"><path d="M3 9h18M5 13h14M7 17h10"/></symbol>
+  <symbol id="i-encender" viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.34 7.34a8 8 0 1 0 11.32 0"/></symbol>
+  <symbol id="i-apagar" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 12h7"/></symbol>
+  <symbol id="i-enlace" viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1.8 1.8 0 0 1-1.8 1.8H5A1.8 1.8 0 0 1 3.2 19V7.8A1.8 1.8 0 0 1 5 6h5"/></symbol>
+  <symbol id="i-fotos" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M4 18l5.5-5.5 3.5 3.5 2.5-2.5L21 18"/></symbol>
+  <symbol id="i-carpeta" viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2.2h7.5A2.5 2.5 0 0 1 21 9.7v7.8A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z"/></symbol>
+  <symbol id="i-llave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l8-8M16 7l2.5 2.5M14 9l2 2"/></symbol>
+  <symbol id="i-grafica" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-casa" viewBox="0 0 24 24"><path d="M3.5 11L12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5.5h4V20"/></symbol>
+  <symbol id="i-tiquet" viewBox="0 0 24 24"><path d="M6 3h12v18l-2.5-1.6L13 21l-2.5-1.6L8 21l-2-1.3z"/><path d="M9 8h6M9 12h6M9 16h3"/></symbol>
+  <symbol id="i-app" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></symbol>
+  <symbol id="i-cerrar" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+</svg>
+
+<!-- ===================== Cabecera fija ===================== -->
+<header class="cabecera">
+  <div class="reloj-caja">
+    <div class="reloj" id="hora">--:--</div>
+    <div class="fecha-tiempo">
+      <div class="fecha" id="fecha">—</div>
+      <div class="tiempo" id="tiempo"><svg class="ico icono-tiempo"><use href="#i-nube"/></svg><span id="temp">—</span></div>
+    </div>
+  </div>
+
+  <nav class="navegacion vidrio" aria-label="Secciones">
+    <a href="#inicio" class="activo" data-seccion="inicio">Inicio</a>
+    <a href="#centro" data-seccion="centro">Centro de control</a>
+  </nav>
+
+  <div class="acciones-cabecera">
+    <button class="boton-icono vidrio" id="btn-tema" title="Modo claro / oscuro"><svg class="ico"><use href="#i-tema"/></svg></button>
+    <button class="boton-icono vidrio" id="btn-fondo" title="Apariencia"><svg class="ico"><use href="#i-fondo"/></svg></button>
+    <button class="boton-icono vidrio peligro" id="btn-apagar-cluster" title="Apagar el clúster"><svg class="ico"><use href="#i-apagar"/></svg></button>
+  </div>
+</header>
+
+<main>
+
+<!-- ===================== INICIO: lo esencial ===================== -->
+<section class="seccion" id="inicio">
+
+  <div class="estado-general" id="estado-general">
+    <span class="punto"></span><span class="texto">Comprobando el clúster…</span>
+  </div>
+
+  <div class="rejilla rejilla-nodos" id="fila-nodos">
+      <article class="tarjeta vidrio nodo" data-nodo="cluster" tabindex="0">
+        <div class="tarjeta-cab"><h2>Clúster HPC</h2><span class="punto acento" title="Clúster"></span></div>
+        <div class="metricas">
+          <div class="metrica"><svg class="ico"><use href="#i-cpu"/></svg><span class="valor" data-campo="cpu">—</span></div>
+          
+          <div class="metrica"><svg class="ico"><use href="#i-ram"/></svg><span class="valor" data-campo="ram">—</span></div>
+          <div class="metrica"><svg class="ico"><use href="#i-encender"/></svg><span class="valor" data-campo="encendidas">—</span></div>
+        </div>
+      </article>
+      <article class="tarjeta vidrio nodo" data-nodo="pi-master" tabindex="0">
+        <div class="tarjeta-cab"><h2>Pi-master</h2><span class="punto" data-estado></span></div>
+        <div class="metricas">
+          <div class="metrica"><svg class="ico"><use href="#i-cpu"/></svg><span class="valor" data-campo="cpu">—</span></div>
+          <div class="metrica"><svg class="ico"><use href="#i-temp"/></svg><span class="valor" data-campo="temp">—</span></div>
+          <div class="metrica"><svg class="ico"><use href="#i-ram"/></svg><span class="valor" data-campo="ram">—</span></div>
+        </div>
+        <svg class="minigrafica" data-mini viewBox="0 0 100 26" preserveAspectRatio="none"></svg>
+      </article>
+      <article class="tarjeta vidrio nodo" data-nodo="faraday" tabindex="0">
+        <div class="tarjeta-cab"><button class="energia" data-energia title="Encender o apagar"><svg class="ico"><use href="#i-encender"/></svg></button><h2>Faraday</h2><span class="punto" data-estado></span></div>
+        <div class="metricas">
+          <div class="metrica"><svg class="ico"><use href="#i-cpu"/></svg><span class="valor" data-campo="cpu">—</span></div>
+          <div class="metrica"><svg class="ico"><use href="#i-temp"/></svg><span class="valor" data-campo="temp">—</span></div>
+          <div class="metrica"><svg class="ico"><use href="#i-ram"/></svg><span class="valor" data-campo="ram">—</span></div>
+        </div>
+        <svg class="minigrafica" data-mini viewBox="0 0 100 26" preserveAspectRatio="none"></svg>
+      </article>
+      <article class="tarjeta vidrio nodo" data-nodo="mustang" tabindex="0">
+        <div class="tarjeta-cab"><button class="energia" data-energia title="Encender o apagar"><svg class="ico"><use href="#i-encender"/></svg></button><h2>Mustang</h2><span class="punto" data-estado></span></div>
+        <div class="metricas">
+          <div class="metrica"><svg class="ico"><use href="#i-cpu"/></svg><span class="valor" data-campo="cpu">—</span></div>
+          <div class="metrica"><svg class="ico"><use href="#i-temp"/></svg><span class="valor" data-campo="temp">—</span></div>
+          <div class="metrica"><svg class="ico"><use href="#i-ram"/></svg><span class="valor" data-campo="ram">—</span></div>
+        </div>
+        <svg class="minigrafica" data-mini viewBox="0 0 100 26" preserveAspectRatio="none"></svg>
+      </article>
+  </div>
+
+  <!-- Panel de detalle: único, a lo ancho, debajo de las tarjetas -->
+  <div class="detalle-caja" id="detalle-caja">
+    <article class="tarjeta vidrio detalle" id="detalle"></article>
+  </div>
+
+  <h3 class="titulo-grupo">Aplicaciones</h3>
+  <div class="rejilla rejilla-apps">
+    <div class="contenido-apps" id="fila-apps"></div>
+    <div class="contenido-apps" id="fila-servicios"></div>
+    <div class="contenido-apps" id="fila-enlaces"></div>
+  </div>
+</section>
+
+<!-- ===================== CENTRO DE CONTROL: lo denso ===================== -->
+<section class="seccion" id="centro">
+  <h2 class="titulo-seccion">Centro de control</h2>
+
+  <article class="tarjeta vidrio panel-ancho" id="panel-apps">
+    <div class="tarjeta-cab"><h2>Aplicaciones</h2>
+      <span class="etiqueta-estado">git push pi main</span></div>
+    <ul class="lista-apps" id="lista-apps"><li class="cargando">Consultando…</li></ul>
+  </article>
+
+  <article class="tarjeta vidrio panel-ancho" id="panel-avisos">
+    <div class="tarjeta-cab">
+      <h2>Avisos</h2>
+      <span class="etiqueta-estado" id="avisos-revisado"></span>
+    </div>
+    <div class="avisos-cuerpo">
+      <div class="avisos-resumen" id="avisos-resumen"></div>
+      <ul class="lista-avisos" id="lista-avisos"><li class="cargando">Revisando el clúster…</li></ul>
+    </div>
+  </article>
+
+  <div class="rejilla rejilla-paneles">
+    <article class="tarjeta vidrio panel-red" id="panel-red">
+      <div class="tarjeta-cab">
+        <h2>Red</h2>
+        <span class="etiqueta-estado"><span id="texto-vpn">VPN</span> <span class="punto" id="punto-vpn"></span></span>
+      </div>
+      <div class="red-rejilla">
+        <!-- indicadores de un vistazo -->
+        <div class="kpis" id="kpis-red"></div>
+
+        <section class="red-bloque">
+          <h3 class="subtitulo">Tráfico de la Pi
+            <span class="leyenda-red"><i class="entrada"></i>entrada <i class="salida"></i>salida</span>
+            <span class="rango rango-red" id="rango-red">
+              <button data-horas="1">1 h</button><button data-horas="6" class="activo">6 h</button>
+              <button data-horas="24">24 h</button><button data-horas="72">3 d</button>
+            </span></h3>
+          <div class="pista" id="pista-red"></div>
+          <div class="graficas-red" id="graficas-red"></div>
+        </section>
+
+        <section class="red-bloque">
+          <h3 class="subtitulo">Calidad de la conexión · últimas 24 h
+            <span class="leyenda-red"><i class="entrada"></i>internet <i class="salida"></i>router
+              <b class="leyenda-perdida"></b>pérdida</span></h3>
+          <div id="grafica-conexion"></div>
+        </section>
+
+        <div class="red-tres">
+          <section class="red-bloque">
+            <h3 class="subtitulo">Dispositivos en la VPN</h3>
+            <ul class="lista-pares" id="lista-pares"><li class="cargando">Consultando…</li></ul>
+          </section>
+          <section class="red-bloque">
+            <h3 class="subtitulo">Lo que más consume
+              <span class="rango rango-mini" id="rango-consumo">
+                <button data-periodo="hoy" class="activo">hoy</button><button data-periodo="semana">7 d</button>
+                <button data-periodo="mes">30 d</button>
+              </span></h3>
+            <ul class="lista-consumo" id="lista-consumo"><li class="cargando">Calculando…</li></ul>
+          </section>
+          <section class="red-bloque">
+            <h3 class="subtitulo">Bloqueos · 24 h <span class="contador" id="bloqueos-total"></span></h3>
+            <svg class="barras-hora" id="bloqueos-hora" viewBox="0 0 240 28" preserveAspectRatio="none"></svg>
+            <ul class="lista-grupos compacta" id="lista-bloqueos"><li class="cargando">Leyendo registros…</li></ul>
+          </section>
+        </div>
+      </div>
+    </article>
+    <article class="tarjeta vidrio panel-seguridad" id="panel-seguridad">
+      <div class="tarjeta-cab">
+        <h2>Seguridad</h2>
+        <span class="etiqueta-estado"><span id="texto-cs">CrowdSec</span> <span class="punto" id="punto-cs"></span></span>
+      </div>
+      <div class="aviso-modo" id="aviso-modo" hidden></div>
+      <div class="kpis" id="kpis-seg"></div>
+      <div class="seg-rejilla">
+        <section class="red-bloque">
+          <h3 class="subtitulo">De dónde vienen · 7 días</h3>
+          <div class="mapa-seg" id="mapa-seg"></div>
+        </section>
+        <section class="red-bloque">
+          <h3 class="subtitulo">Tipos de ataque · 7 días</h3>
+          <ul class="lista-consumo" id="lista-escenarios"><li class="cargando">Consultando…</li></ul>
+        </section>
+      </div>
+      <div class="red-tres">
+        <section class="red-bloque">
+          <h3 class="subtitulo">Detecciones recientes</h3>
+          <ul class="lista-grupos compacta" id="lista-detecciones"><li class="cargando">Consultando…</li></ul>
+        </section>
+        <section class="red-bloque">
+          <h3 class="subtitulo">Bloqueados ahora</h3>
+          <ul class="lista-grupos compacta" id="lista-decisiones"><li class="cargando">Consultando…</li></ul>
+          <div class="bloqueo-manual">
+            <input type="text" id="ip-bloquear" placeholder="IP a bloquear" inputmode="decimal" autocomplete="off">
+            <select id="horas-bloquear">
+              <option value="1">1 h</option><option value="4" selected>4 h</option>
+              <option value="24">24 h</option><option value="168">7 días</option>
+              <option value="720">30 días</option><option value="0">Permanente</option>
+            </select>
+            <button class="boton-accion apagar" id="boton-bloquear">Bloquear</button>
+          </div>
+          <input type="text" class="motivo-bloqueo" id="motivo-bloquear" maxlength="80"
+                 placeholder="Motivo (opcional, queda en el historial)" autocomplete="off">
+        </section>
+      </div>
+      <section class="red-bloque historial-seg">
+        <h3 class="subtitulo">Historial forense · se conserva siempre
+          <span class="contador" id="historial-totales"></span></h3>
+        <div class="buscador-historial">
+          <input type="text" id="buscar-ip" placeholder="Buscar una IP (vacío = lo más reciente)" autocomplete="off">
+          <button class="boton-accion" id="boton-buscar-ip">Buscar</button>
+          <a class="boton-accion" href="/api/seguridad/historial.csv" download>Exportar CSV</a>
+        </div>
+        <ul class="lista-historial" id="lista-historial"><li class="cargando">Cargando…</li></ul>
+      </section>
+    </article>
+
+    <article class="tarjeta vidrio panel-grande">
+      <div class="tarjeta-cab"><h2>Almacenamiento</h2></div>
+      <div class="cuerpo-panel">
+        <ul class="lista-discos" id="lista-discos"><li class="cargando">Cargando…</li></ul>
+      </div>
+    </article>
+  </div>
+
+
+</section>
+
+</main>
+
+<!-- ===================== Apariencia (panel lateral) ===================== -->
+<dialog id="dialogo-fondo" class="dialogo vidrio lateral">
+  <div class="lateral-cab">
+    <h3>Apariencia</h3>
+    <button class="cerrar-tarjeta" id="cerrar-fondo" title="Cerrar"><svg class="ico"><use href="#i-cerrar"/></svg></button>
+  </div>
+
+  <div class="lateral-cuerpo">
+    <section class="grupo-dialogo">
+      <span class="etiqueta">Temas</span>
+      <div class="presets" id="presets"></div>
+    </section>
+
+    <section class="grupo-dialogo">
+      <span class="etiqueta">Modo</span>
+      <div class="segmentado" id="ctl-modo">
+        <button data-valor="oscuro">Oscuro</button><button data-valor="claro">Claro</button>
+      </div>
+    </section>
+
+    <details class="personalizar" id="personalizar">
+      <summary>Personalizar…</summary>
+
+    <section class="grupo-dialogo">
+      <span class="etiqueta">Letra</span>
+      <div class="segmentado" id="ctl-letra">
+        <button data-valor="sans">DM Sans</button><button data-valor="serif" style="font-family:'TeX Gyre Pagella',serif">Pagella</button>
+      </div>
+    </section>
+
+    <section class="grupo-dialogo">
+      <span class="etiqueta">Color de acento</span>
+      <div class="acentos" id="acentos"></div>
+    </section>
+
+    <section class="grupo-dialogo">
+      <span class="etiqueta">Tarjetas</span>
+      <label class="control">Color <input type="color" id="ctl-tarjeta-color"></label>
+      <label class="control">Opacidad <input type="range" id="ctl-tarjeta-opacidad" min="15" max="100" step="1"><output></output></label>
+      <label class="control">Desenfoque <input type="range" id="ctl-tarjeta-blur" min="0" max="40" step="1"><output></output></label>
+      <button class="mini-boton ancho" id="ctl-tarjeta-reset">Usar las del modo</button>
+    </section>
+
+    <section class="grupo-dialogo">
+      <span class="etiqueta">Fondo</span>
+      <div class="segmentado" id="ctl-fondo-tipo">
+        <button data-valor="tema">Tema</button><button data-valor="color">Color</button>
+        <button data-valor="degradado">Degradado</button><button data-valor="imagen">Imagen</button>
+      </div>
+
+      <div class="subgrupo" data-fondo="color">
+        <label class="control">Color <input type="color" id="ctl-fondo-color"></label>
+      </div>
+
+      <div class="subgrupo" data-fondo="degradado">
+        <div class="segmentado pequeno" id="ctl-grad-tipo">
+          <button data-valor="lineal">Lineal</button><button data-valor="radial">Radial</button><button data-valor="aurora">Aurora</button>
+        </div>
+        <label class="control">Ángulo <input type="range" id="ctl-grad-angulo" min="0" max="360" step="5"><output></output></label>
+        <div class="colores-grad">
+          <input type="color" id="ctl-grad-c1" title="Color 1">
+          <input type="color" id="ctl-grad-c2" title="Color 2">
+          <input type="color" id="ctl-grad-c3" title="Color 3">
+          <label class="check"><input type="checkbox" id="ctl-grad-usar3"> 3 colores</label>
+        </div>
+        <div class="vista-grad" id="vista-grad"></div>
+      </div>
+
+      <div class="subgrupo" data-fondo="imagen">
+        <label class="control subir">Elegir imagen <input type="file" id="img-fondo" accept="image/*"></label>
+        <label class="control">Oscurecer <input type="range" id="ctl-img-oscurecer" min="0" max="80" step="1"><output></output></label>
+      </div>
+    </section>
+
+    <section class="grupo-dialogo">
+      <span class="etiqueta">Forma y tamaño</span>
+      <label class="control">Esquinas <input type="range" id="ctl-radio" min="0" max="24" step="1"><output></output></label>
+      <label class="control">Ancho máximo
+        <select id="ctl-ancho">
+          <option value="1200">1200 px</option><option value="1440">1440 px</option>
+          <option value="1680">1680 px</option><option value="1920">1920 px</option>
+          <option value="0">Sin límite</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="grupo-dialogo">
+      <span class="etiqueta">Guardar como tema propio</span>
+      <div class="fila-guardar">
+        <input type="text" id="nombre-tema" placeholder="Nombre del tema" maxlength="24">
+        <button class="mini-boton" id="guardar-tema">Guardar actual</button>
+      </div>
+    </section>
+
+    <button class="cerrar" id="restablecer-apariencia">Restablecer todo</button>
+    </details>
+  </div>
+</dialog>
+
+<!-- ===================== Apagar el clúster ===================== -->
+<dialog id="dialogo-apagado" class="dialogo vidrio">
+  <h3>Apagar el clúster</h3>
+  <p class="aviso-dialogo">Se apagarán los nodos de cómputo. La Pi solo si lo marcas, y en ese caso
+    <strong>tendrás que encenderla a mano</strong>: no se puede despertar por red.</p>
+  <div class="opciones-fondo">
+    <label class="color">Dentro de
+      <select id="minutos-apagado">
+        <option value="0">ahora mismo</option>
+        <option value="5" selected>5 minutos</option>
+        <option value="15">15 minutos</option>
+        <option value="30">30 minutos</option>
+        <option value="60">1 hora</option>
+      </select>
+    </label>
+    <label class="color">Apagar también la Pi <input type="checkbox" id="incluir-pi"></label>
+    <button id="confirmar-apagado" class="boton-accion apagar">Programar apagado</button>
+    <button id="cancelar-apagado" class="boton-accion">Cancelar el apagado programado</button>
+  </div>
+  <div class="estado-accion" id="estado-apagado"></div>
+  <button class="cerrar" id="cerrar-apagado">Cerrar</button>
+</dialog>
+
+<!-- ===================== Confirmaciones y avisos ===================== -->
+<dialog id="dialogo-pregunta" class="dialogo vidrio pregunta">
+  <div class="pregunta-icono" id="pregunta-icono"></div>
+  <h3 id="pregunta-titulo"></h3>
+  <p class="pregunta-texto" id="pregunta-texto"></p>
+  <div class="pregunta-botones">
+    <button class="boton-accion" id="pregunta-cancelar">Cancelar</button>
+    <button class="boton-accion principal" id="pregunta-aceptar">Aceptar</button>
+  </div>
+</dialog>
+
+<script src="/static/mapa-mundo.js"></script>
+<script src="/static/paletas.js"></script>
+<script src="/static/panel.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# --- values of THIS installation: never published ---------------------------
+config/local.env
+config/servicios.yaml
+config/hpc-respaldo-fuentes.conf
+privado/
+
+# --- secrets, just in case they are ever dropped in the folder -------------
+*.key
+*.pem
+*.env
+!config/local.env.example
+!config/nodo-controlador.env
+secretos/
+
+# --- noise ------------------------------------------------------------------
+__pycache__/
+*.pyc
+.vs/
+.vscode/
+Thumbs.db
+desktop.ini

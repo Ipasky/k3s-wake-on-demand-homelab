@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+# =============================================================================
+# desplegar-app: publica en K3s una aplicación recibida por "git push pi main"
+#
+#   desplegar-app --crear <app>   crea el repositorio /home/raspberrypi/git/<app>.git
+#                                 con su hook (una vez por proyecto)
+#   desplegar-app <app>           lo llama el hook post-receive (lee las ramas de stdin)
+#   desplegar-app <app> --otra-vez  vuelve a desplegar el último commit de main
+#
+# Qué necesita el repositorio de cada proyecto:
+#   Dockerfile                     cómo se construye la imagen (arm64, en la Pi)
+#   deploy/desplegar.conf          NAMESPACE=…  DEPLOYMENT=…  (CONTENEDOR=…  opcional)
+#   deploy/*.yaml                  manifiestos SIN secretos; la imagen se escribe
+#                                  como __IMAGEN__ y aquí se sustituye por la real
+#
+# Datos de la instalación (dominio, etc.) que no deben ir al repositorio:
+#   /home/raspberrypi/apps/<app>/local.conf   líneas CLAVE=valor; cada __CLAVE__
+#                                  de los manifiestos se sustituye por su valor.
+#   Si queda algún __MARCADOR__ sin valor, NO se despliega.
+#
+# Pasos: extraer el código → construir con Podman → importar en K3s →
+#        aplicar manifiestos → esperar a que arranque → si falla, volver atrás.
+# Solo despliega la rama main. Nunca toca Secrets ni datos.
+# =============================================================================
+set -euo pipefail
+
+BASE_GIT=/home/raspberrypi/git
+BASE_APPS=/home/raspberrypi/apps
+RAMA=main
+export KUBECONFIG=${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}
+
+paso() { printf '\n\033[1;34m▶ %s\033[0m\n' "$*"; }
+ok()   { printf '\033[1;32m✔ %s\033[0m\n' "$*"; }
+mal()  { printf '\033[1;31m✘ %s\033[0m\n' "$*" >&2; }
+
+# ----------------------------------------------------------------- crear repo
+if [[ "${1:-}" == "--crear" ]]; then
+  APP="${2:?uso: desplegar-app --crear <nombre>}"
+  [[ "$APP" =~ ^[a-z0-9][a-z0-9-]*$ ]] || { mal "nombre no válido (minúsculas, números y guiones)"; exit 2; }
+  REPO="$BASE_GIT/$APP.git"
+  [[ -e "$REPO" ]] && { mal "ya existe $REPO"; exit 1; }
+  mkdir -p "$BASE_GIT"
+  git init --bare -q --initial-branch="$RAMA" "$REPO"
+  cat > "$REPO/hooks/post-receive" <<EOF
+#!/usr/bin/env bash
+exec /usr/local/bin/desplegar-app $APP
+EOF
+  chmod 755 "$REPO/hooks/post-receive"
+  # El push y el despliegue corren como raspberrypi: si se creó como root, se le devuelve
+  [[ $EUID -eq 0 ]] && chown -R raspberrypi:raspberrypi "$BASE_GIT" && mkdir -p "$BASE_APPS" \
+    && chown -R raspberrypi:raspberrypi "$BASE_APPS"
+  ok "repositorio listo: $REPO"
+  echo "   En Windows, dentro del proyecto:  git remote add pi pi:git/$APP.git"
+  exit 0
+fi
+
+APP="${1:?uso: desplegar-app <app> | --crear <app>}"
+REPO="$BASE_GIT/$APP.git"
+TRABAJO="$BASE_APPS/$APP"
+[[ -d "$REPO" ]] || { mal "no existe $REPO"; exit 1; }
+mkdir -p "$TRABAJO"
+
+# ¿Qué commit desplegar? Del hook llega "viejo nuevo ref" por stdin.
+COMMIT=""
+if [[ "${2:-}" == "--otra-vez" ]]; then
+  COMMIT=$(git --git-dir="$REPO" rev-parse "$RAMA")
+else
+  while read -r _viejo nuevo ref; do
+    [[ "$ref" == "refs/heads/$RAMA" && "$nuevo" != 0000000000000000000000000000000000000000 ]] && COMMIT="$nuevo"
+  done
+  [[ -n "$COMMIT" ]] || { echo "(push recibido; solo se despliega la rama $RAMA)"; exit 0; }
+fi
+CORTO=${COMMIT:0:8}
+IMAGEN="localhost/$APP:$CORTO"
+
+# Un despliegue cada vez por aplicación
+exec 9>"$TRABAJO/.cerrojo"
+flock -n 9 || { mal "ya hay un despliegue de $APP en marcha"; exit 1; }
+
+LOG="$TRABAJO/despliegues.log"
+registrar() { printf '%s  %s  %s\n' "$(date '+%F %T')" "$CORTO" "$1" >> "$LOG"; }
+trap 'registrar "FALLÓ"; mal "despliegue de $APP ($CORTO) fallido: sigue en marcha la versión anterior"' ERR
+
+paso "$APP @ $CORTO: $(git --git-dir="$REPO" log -1 --format=%s "$COMMIT")"
+
+# ------------------------------------------------------------ extraer código
+paso "Extrayendo el código"
+FUENTE="$TRABAJO/fuente"
+rm -rf "$FUENTE"; mkdir -p "$FUENTE"
+git --git-dir="$REPO" archive "$COMMIT" | tar -x -C "$FUENTE"
+[[ -f "$FUENTE/Dockerfile" ]]             || { mal "falta Dockerfile en el repositorio"; exit 1; }
+[[ -f "$FUENTE/deploy/desplegar.conf" ]]  || { mal "falta deploy/desplegar.conf"; exit 1; }
+# shellcheck disable=SC1091
+source "$FUENTE/deploy/desplegar.conf"
+: "${NAMESPACE:?desplegar.conf: falta NAMESPACE}" "${DEPLOYMENT:?desplegar.conf: falta DEPLOYMENT}"
+CONTENEDOR=${CONTENEDOR:-$DEPLOYMENT}
+
+# ------------------------------------------------------------------ construir
+paso "Construyendo la imagen $IMAGEN (la primera vez tarda unos minutos)"
+podman build --pull=newer -t "$IMAGEN" "$FUENTE"
+
+paso "Importándola en K3s"
+podman save --format oci-archive "$IMAGEN" | sudo -n /usr/local/sbin/importar-imagen
+
+# ------------------------------------------------------------------ aplicar
+paso "Aplicando los manifiestos de deploy/"
+MANIF="$TRABAJO/manifiestos"
+rm -rf "$MANIF"; mkdir -p "$MANIF"
+for f in "$FUENTE"/deploy/*.yaml; do
+  sed "s#__IMAGEN__#$IMAGEN#g" "$f" > "$MANIF/$(basename "$f")"
+done
+# Valores propios de esta instalación (local.conf, fuera del repositorio)
+if [[ -f "$TRABAJO/local.conf" ]]; then
+  while IFS= read -r linea || [[ -n "$linea" ]]; do
+    linea=${linea%%#*}; linea=${linea%$'\r'}
+    [[ "$linea" =~ ^[[:space:]]*([A-Z][A-Z0-9_]*)=(.*)$ ]] || continue
+    clave=${BASH_REMATCH[1]}; valor=${BASH_REMATCH[2]}
+    valor=$(printf '%s' "$valor" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/[#&\\]/\\&/g')
+    sed -i "s#__${clave}__#${valor}#g" "$MANIF"/*.yaml
+  done < "$TRABAJO/local.conf"
+fi
+if pendientes=$(grep -oh '__[A-Z][A-Z0-9_]*__' "$MANIF"/*.yaml | sort -u) && [[ -n "$pendientes" ]]; then
+  mal "faltan valores en $TRABAJO/local.conf para: $(echo $pendientes)"; false
+fi
+kubectl apply -f "$MANIF"
+
+paso "Esperando a que arranque"
+if ! kubectl -n "$NAMESPACE" rollout status "deploy/$DEPLOYMENT" --timeout=240s; then
+  mal "no ha arrancado; últimas líneas del registro:"
+  kubectl -n "$NAMESPACE" logs "deploy/$DEPLOYMENT" -c "$CONTENEDOR" --tail=25 2>/dev/null || true
+  paso "Volviendo a la versión anterior"
+  kubectl -n "$NAMESPACE" rollout undo "deploy/$DEPLOYMENT" || true
+  false
+fi
+
+registrar "OK"
+trap - ERR
+ok "$APP desplegado ($CORTO)"
+
+# Limpieza: conservar en Podman solo las 3 últimas imágenes de esta app
+podman images --format '{{.Repository}}:{{.Tag}} {{.Created}}' "localhost/$APP" 2>/dev/null \
+  | sort -k2 -r | tail -n +4 | awk '{print $1}' | xargs -r podman rmi -f >/dev/null 2>&1 || true
+podman image prune -f >/dev/null 2>&1 || true

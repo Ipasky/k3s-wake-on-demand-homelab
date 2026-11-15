@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+#
+# revisar-smart: vigila la salud de los discos y avisa solo si algo EMPEORA
+#
+# Compara con la última revisión: si un contador sube o la salud deja de ser PASSED,
+# lo registra en el journal con prioridad de aviso y, si hay TEMA_NTFY, envía una
+# notificación al móvil.
+#
+# Configuración: /etc/default/revisar-smart
+#   DISCOS="/dev/disk/by-id/ata-XXXX /dev/disk/by-id/ata-YYYY"
+#   OPCIONES=""            # p. ej. "-d sat" para discos por adaptador USB
+#   TEMA_NTFY=""           # opcional: tema de ntfy.sh para avisos al móvil
+#
+set -uo pipefail
+[[ -r /etc/default/revisar-smart ]] && . /etc/default/revisar-smart
+DISCOS="${DISCOS:-}"; OPCIONES="${OPCIONES:-}"; TEMA_NTFY="${TEMA_NTFY:-}"
+ESTADO_DIR=/var/lib/revisar-smart
+RESUMEN="$ESTADO_DIR/resumen.json"     # lo lee el panel (Homepage) a través del despertador
+AVISOS=0; MENSAJES=""
+ATRIBUTOS="Reallocated_Sector_Ct|Current_Pending_Sector|Offline_Uncorrectable|Reported_Uncorrect|UDMA_CRC_Error_Count"
+
+[[ -n "$DISCOS" ]] || { echo "Sin discos configurados en /etc/default/revisar-smart"; exit 0; }
+mkdir -p "$ESTADO_DIR"
+
+avisar(){   # journal + notificación opcional + resumen para el panel
+  echo "$1" | systemd-cat -t revisar-smart -p warning
+  echo "AVISO: $1"
+  AVISOS=$(( AVISOS + 1 ))
+  MENSAJES="${MENSAJES:+$MENSAJES; }$1"
+  [[ -n "$TEMA_NTFY" ]] && curl -fsS -m 10 -d "$(hostname): $1" "https://ntfy.sh/${TEMA_NTFY}" >/dev/null 2>&1
+}
+
+for disco in $DISCOS; do
+  [[ -e "$disco" ]] || { echo "[$disco] no existe ahora mismo, se omite"; continue; }
+  salida="$(sudo -n smartctl -H -A $OPCIONES "$disco" 2>/dev/null)" || {
+    avisar "no se pudo leer SMART de $disco"; continue; }
+
+  salud="$(grep -m1 -oE 'PASSED|FAILED!?' <<<"$salida")"
+  [[ "$salud" == "PASSED" ]] || avisar "salud SMART de $(basename "$disco") = ${salud:-desconocida}"
+
+  actual="$(grep -E "$ATRIBUTOS" <<<"$salida" | awk '{print $2"="$NF}' | sort)"
+  fichero="$ESTADO_DIR/$(basename "$disco").estado"
+
+  if [[ -f "$fichero" ]]; then
+    while IFS='=' read -r attr valor; do
+      previo="$(grep -m1 "^${attr}=" "$fichero" | cut -d= -f2)"
+      [[ "$previo" =~ ^[0-9]+$ && "$valor" =~ ^[0-9]+$ ]] || continue
+      (( valor > previo )) && avisar "$(basename "$disco"): $attr ha subido de $previo a $valor"
+    done <<<"$actual"
+  else
+    echo "[$(basename "$disco")] primera revisión, se guarda la referencia:"
+    sed 's/^/   /' <<<"$actual"
+  fi
+  printf '%s\n' "$actual" > "$fichero"
+done
+# Resumen para el panel (legible por todos; no contiene nada sensible)
+estado="ok"; (( AVISOS > 0 )) && estado="AVISO"
+printf '{"host":"%s","fecha":"%s","estado":"%s","avisos":%d,"detalle":"%s"}\n' \
+  "$(hostname)" "$(date '+%F %H:%M')" "$estado" "$AVISOS" "$(tr -d '"\\' <<<"$MENSAJES")" > "$RESUMEN"
+chmod 644 "$RESUMEN"
+echo "Revisión terminada: $(date '+%F %T')"

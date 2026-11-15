@@ -1,0 +1,34 @@
+# /etc/crowdsec/acquis.d/hpc.yaml: de dónde lee CrowdSec en el HPC
+#
+# Los registros de los contenedores de K3s están en /var/log/containers (formato CRI).
+# El parser 'cri-logs' quita el prefijo del contenedor y 'program' dice qué hay dentro.
+---
+filenames:
+  - /var/log/containers/traefik-*_kube-system_traefik-*.log
+force_inotify: true            # son enlaces que cambian al rotar: vigilar la carpeta
+poll_without_inotify: true
+labels:
+  type: containerd
+  program: traefik
+---
+filenames:
+  - /var/log/containers/authelia-*_auth_authelia-*.log
+force_inotify: true
+poll_without_inotify: true
+labels:
+  type: containerd
+  program: authelia
+---
+# SSH (Ubuntu 24.04 lo escribe en el journal)
+source: journalctl
+journalctl_filter:
+  - "_SYSTEMD_UNIT=ssh.service"
+labels:
+  type: syslog
+---
+# Bloqueos del cortafuegos (kernel): detecta escaneos de puertos
+source: journalctl
+journalctl_filter:
+  - "-k"
+labels:
+  type: syslog

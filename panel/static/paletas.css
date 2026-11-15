@@ -1,0 +1,352 @@
+/* GENERADO por herramientas/generar-paletas.py a partir del escáner de tiquets.
+   No editar a mano: se sobrescribe. Cómo se usan estos tokens: estilo.css. */
+
+html[data-paleta][data-tema="claro"] {
+  --p-fondo: #fff7ee;
+  --p-blob-1: #ff8b6e;
+  --p-blob-2: #ffb347;
+  --p-blob-3: #ffd36b;
+  --p-blob-4: #ffa08a;
+  --p-blob-5: #ffe2b5;
+  --p-blob-6: #ffffff;
+  --p-blob-opacidad: .82;
+  --p-grano-opacidad: .26;
+  --p-grano-mezcla: overlay;
+  --p-vidrio: rgba(255, 255, 255, .56);
+  --p-vidrio-linea: rgba(255, 255, 255, .92);
+  --p-superficie-2: rgba(255, 120, 50, .12);
+  --p-borde: rgba(90, 40, 10, .09);
+  --p-borde-fuerte: rgba(90, 40, 10, .17);
+  --p-texto: #24170f;
+  --p-texto-2: #a0735a;
+  --p-acento: #24170f;
+  --p-acento-texto: #fffaf3;
+  --p-finde-texto: #e2621c;
+  --p-casilla: rgba(255, 255, 255, .42);
+  --p-casilla-borde: rgba(90, 40, 10, .10);
+  --p-g: #22a05c;
+  --p-o: #f07a10;
+  --p-r: #e23d32;
+  --p-radio: 14px;
+  --p-sombra: 0 18px 50px rgba(230, 110, 40, .16);
+  --p-acento-panel: var(--p-finde-texto);
+}
+
+html[data-paleta][data-tema="oscuro"] {
+  --p-fondo: #030a14;
+  --p-blob-1: #0f3f86;
+  --p-blob-2: #164a73;
+  --p-blob-3: #5fb3c2;
+  --p-blob-4: #0b2c4d;
+  --p-blob-5: #1d6d86;
+  --p-blob-6: #9fe0d0;
+  --p-blob-opacidad: .85;
+  --p-grano-opacidad: .30;
+  --p-vidrio: rgba(8, 22, 40, .52);
+  --p-vidrio-linea: rgba(160, 220, 235, .14);
+  --p-superficie-2: rgba(160, 225, 240, .14);
+  --p-borde: rgba(200, 230, 240, .10);
+  --p-borde-fuerte: rgba(200, 230, 240, .22);
+  --p-texto: #eef4f8;
+  --p-texto-2: #a9bccb;
+  --p-acento: #eef4f8;
+  --p-acento-texto: #06101d;
+  --p-finde-texto: #a6eaf2;
+  --p-casilla: rgba(160, 220, 235, .07);
+  --p-casilla-borde: rgba(200, 230, 240, .12);
+  --p-g: #5fd38f;
+  --p-o: #ffb44f;
+  --p-r: #ff7a6b;
+  --p-sombra: 0 18px 50px rgba(0, 0, 0, .55);
+  --p-grano-mezcla: overlay;
+  --p-radio: 14px;
+  --p-acento-panel: var(--p-finde-texto);
+}
+
+html[data-paleta="verde"][data-tema="claro"] {
+  --p-fondo: hsl(150 60% 95%);
+  --p-blob-1: hsl(160 65% 58%);
+  --p-blob-2: hsl(120 60% 64%);
+  --p-blob-3: hsl(75 85% 68%);
+  --p-blob-4: hsl(178 60% 68%);
+  --p-blob-5: hsl(95 70% 85%);
+  --p-blob-6: #ffffff;
+  --p-superficie-2: hsl(145 80% 50% / .12);
+  --p-borde: hsl(145 60% 20% / .09);
+  --p-borde-fuerte: hsl(145 60% 20% / .17);
+  --p-texto: hsl(145 40% 12%);
+  --p-texto-2: hsl(145 30% 38%);
+  --p-acento: hsl(145 40% 12%);
+  --p-acento-texto: hsl(145 60% 98%);
+  --p-finde-texto: hsl(145 75% 38%);
+  --p-casilla-borde: hsl(145 60% 20% / .10);
+  --p-sombra: 0 18px 50px hsl(145 70% 40% / .16);
+  --p-acento-panel: var(--p-finde-texto);
+}
+
+html[data-paleta="verde"][data-tema="oscuro"] {
+  --p-fondo: hsl(165 70% 3%);
+  --p-blob-1: hsl(155 72% 20%);
+  --p-blob-2: hsl(172 55% 23%);
+  --p-blob-3: hsl(95 55% 50%);
+  --p-blob-4: hsl(162 75% 9%);
+  --p-blob-5: hsl(185 58% 28%);
+  --p-blob-6: hsl(130 55% 76%);
+  --p-vidrio: hsl(145 50% 9% / .52);
+  --p-vidrio-linea: hsl(145 60% 80% / .14);
+  --p-superficie-2: hsl(145 60% 75% / .14);
+  --p-borde: hsl(145 40% 85% / .10);
+  --p-borde-fuerte: hsl(145 40% 85% / .22);
+  --p-texto: hsl(145 30% 95%);
+  --p-texto-2: hsl(145 20% 72%);
+  --p-acento: hsl(145 30% 95%);
+  --p-acento-texto: hsl(145 60% 6%);
+  --p-finde-texto: hsl(145 80% 80%);
+  --p-casilla: hsl(145 50% 80% / .07);
+  --p-casilla-borde: hsl(145 40% 85% / .12);
+  --p-acento-panel: var(--p-finde-texto);
+}
+
+html[data-paleta="magenta"][data-tema="claro"] {
+  --p-fondo: hsl(320 70% 97%);
+  --p-blob-1: hsl(322 82% 68%);
+  --p-blob-2: hsl(278 72% 72%);
+  --p-blob-3: hsl(348 92% 76%);
+  --p-blob-4: hsl(300 62% 76%);
+  --p-blob-5: hsl(20 92% 86%);
+  --p-blob-6: #ffffff;
+  --p-superficie-2: hsl(315 80% 50% / .12);
+  --p-borde: hsl(315 60% 20% / .09);
+  --p-borde-fuerte: hsl(315 60% 20% / .17);
+  --p-texto: hsl(315 40% 12%);
+  --p-texto-2: hsl(315 30% 38%);
+  --p-acento: hsl(315 40% 12%);
+  --p-acento-texto: hsl(315 60% 98%);
+  --p-finde-texto: hsl(315 75% 38%);
+  --p-casilla-borde: hsl(315 60% 20% / .10);
+  --p-sombra: 0 18px 50px hsl(315 70% 40% / .16);
+  --p-acento-panel: var(--p-finde-texto);
+}
+
+html[data-paleta="magenta"][data-tema="oscuro"] {
+  --p-fondo: hsl(280 60% 4%);
+  --p-blob-1: hsl(300 66% 24%);
+  --p-blob-2: hsl(268 55% 26%);
+  --p-blob-3: hsl(330 62% 56%);
+  --p-blob-4: hsl(285 70% 10%);
+  --p-blob-5: hsl(250 50% 32%);
+  --p-blob-6: hsl(320 62% 80%);
+  --p-vidrio: hsl(315 50% 9% / .52);
+  --p-vidrio-linea: hsl(315 60% 80% / .14);
+  --p-superficie-2: hsl(315 60% 75% / .14);
+  --p-borde: hsl(315 40% 85% / .10);
+  --p-borde-fuerte: hsl(315 40% 85% / .22);
+  --p-texto: hsl(315 30% 95%);
+  --p-texto-2: hsl(315 20% 72%);
+  --p-acento: hsl(315 30% 95%);
+  --p-acento-texto: hsl(315 60% 6%);
+  --p-finde-texto: hsl(315 80% 80%);
+  --p-casilla: hsl(315 50% 80% / .07);
+  --p-casilla-borde: hsl(315 40% 85% / .12);
+  --p-acento-panel: var(--p-finde-texto);
+}
+
+html[data-paleta="amarillo"][data-tema="claro"] {
+  --p-fondo: hsl(45 90% 95%);
+  --p-blob-1: hsl(45 95% 60%);
+  --p-blob-2: hsl(28 95% 64%);
+  --p-blob-3: hsl(60 92% 68%);
+  --p-blob-4: hsl(85 60% 72%);
+  --p-blob-5: hsl(38 92% 85%);
+  --p-blob-6: #ffffff;
+  --p-superficie-2: hsl(45 80% 50% / .12);
+  --p-borde: hsl(45 60% 20% / .09);
+  --p-borde-fuerte: hsl(45 60% 20% / .17);
+  --p-texto: hsl(45 40% 12%);
+  --p-texto-2: hsl(45 30% 32%);
+  --p-acento: hsl(45 40% 12%);
+  --p-acento-texto: hsl(45 60% 98%);
+  --p-finde-texto: hsl(45 75% 30%);
+  --p-casilla-borde: hsl(45 60% 20% / .10);
+  --p-sombra: 0 18px 50px hsl(45 70% 40% / .16);
+  --p-acento-panel: var(--p-finde-texto);
+}
+
+html[data-paleta="amarillo"][data-tema="oscuro"] {
+  --p-fondo: hsl(32 60% 4%);
+  --p-blob-1: hsl(38 78% 24%);
+  --p-blob-2: hsl(22 62% 22%);
+  --p-blob-3: hsl(50 75% 52%);
+  --p-blob-4: hsl(30 65% 9%);
+  --p-blob-5: hsl(60 45% 28%);
+  --p-blob-6: hsl(45 88% 78%);
+  --p-vidrio: hsl(45 50% 9% / .52);
+  --p-vidrio-linea: hsl(45 60% 80% / .14);
+  --p-superficie-2: hsl(45 60% 75% / .14);
+  --p-borde: hsl(45 40% 85% / .10);
+  --p-borde-fuerte: hsl(45 40% 85% / .22);
+  --p-texto: hsl(45 30% 95%);
+  --p-texto-2: hsl(45 20% 72%);
+  --p-acento: hsl(45 30% 95%);
+  --p-acento-texto: hsl(45 60% 6%);
+  --p-finde-texto: hsl(45 80% 80%);
+  --p-casilla: hsl(45 50% 80% / .07);
+  --p-casilla-borde: hsl(45 40% 85% / .12);
+  --p-acento-panel: var(--p-finde-texto);
+}
+
+html[data-paleta="rojo"][data-tema="claro"] {
+  --p-fondo: hsl(355 80% 97%);
+  --p-blob-1: hsl(355 85% 66%);
+  --p-blob-2: hsl(16 92% 66%);
+  --p-blob-3: hsl(335 75% 74%);
+  --p-blob-4: hsl(5 80% 76%);
+  --p-blob-5: hsl(28 92% 85%);
+  --p-blob-6: #ffffff;
+  --p-superficie-2: hsl(355 80% 50% / .12);
+  --p-borde: hsl(355 60% 20% / .09);
+  --p-borde-fuerte: hsl(355 60% 20% / .17);
+  --p-texto: hsl(355 40% 12%);
+  --p-texto-2: hsl(355 30% 38%);
+  --p-acento: hsl(355 40% 12%);
+  --p-acento-texto: hsl(355 60% 98%);
+  --p-finde-texto: hsl(355 75% 38%);
+  --p-casilla-borde: hsl(355 60% 20% / .10);
+  --p-sombra: 0 18px 50px hsl(355 70% 40% / .16);
+  --p-acento-panel: var(--p-finde-texto);
+}
+
+html[data-paleta="rojo"][data-tema="oscuro"] {
+  --p-fondo: hsl(350 60% 4%);
+  --p-blob-1: hsl(355 68% 24%);
+  --p-blob-2: hsl(338 50% 22%);
+  --p-blob-3: hsl(10 68% 54%);
+  --p-blob-4: hsl(350 65% 9%);
+  --p-blob-5: hsl(318 42% 28%);
+  --p-blob-6: hsl(18 78% 78%);
+  --p-vidrio: hsl(355 50% 9% / .52);
+  --p-vidrio-linea: hsl(355 60% 80% / .14);
+  --p-superficie-2: hsl(355 60% 75% / .14);
+  --p-borde: hsl(355 40% 85% / .10);
+  --p-borde-fuerte: hsl(355 40% 85% / .22);
+  --p-texto: hsl(355 30% 95%);
+  --p-texto-2: hsl(355 20% 72%);
+  --p-acento: hsl(355 30% 95%);
+  --p-acento-texto: hsl(355 60% 6%);
+  --p-finde-texto: hsl(355 80% 80%);
+  --p-casilla: hsl(355 50% 80% / .07);
+  --p-casilla-borde: hsl(355 40% 85% / .12);
+  --p-acento-panel: var(--p-finde-texto);
+}
+
+html[data-paleta="sobrio"][data-tema="claro"] {
+  --p-fondo: #faf9f6;
+  --p-blob-1: #faf9f6;
+  --p-blob-2: #faf9f6;
+  --p-blob-3: #faf9f6;
+  --p-blob-4: #faf9f6;
+  --p-blob-5: #faf9f6;
+  --p-blob-6: #faf9f6;
+  --p-blob-opacidad: 0;
+  --p-grano-opacidad: 0;
+  --p-vidrio: #ffffff;
+  --p-vidrio-linea: rgba(0, 0, 0, .10);
+  --p-superficie-2: rgba(0, 0, 0, .05);
+  --p-borde: rgba(0, 0, 0, .13);
+  --p-borde-fuerte: rgba(0, 0, 0, .30);
+  --p-texto: #000000;
+  --p-texto-2: #4a4a4a;
+  --p-acento: #000000;
+  --p-acento-texto: #ffffff;
+  --p-finde-texto: #333333;
+  --p-casilla: rgba(0, 0, 0, .022);
+  --p-casilla-borde: rgba(0, 0, 0, .15);
+  --p-sombra: 0 1px 2px rgba(0, 0, 0, .06);
+  --p-g: hsl(145 55% 33%);
+  --p-o: hsl(40 85% 42%);
+  --p-r: hsl(0 68% 44%);
+  --p-radio: 8px;
+  --p-acento-panel: var(--p-finde-texto);
+}
+
+html[data-paleta="sobrio"][data-tema="oscuro"] {
+  --p-fondo: #151515;
+  --p-blob-1: #151515;
+  --p-blob-2: #151515;
+  --p-blob-3: #151515;
+  --p-blob-4: #151515;
+  --p-blob-5: #151515;
+  --p-blob-6: #151515;
+  --p-blob-opacidad: 0;
+  --p-grano-opacidad: 0;
+  --p-vidrio: #1c1c1c;
+  --p-vidrio-linea: rgba(255, 255, 255, .10);
+  --p-superficie-2: rgba(255, 255, 255, .06);
+  --p-borde: rgba(255, 255, 255, .12);
+  --p-borde-fuerte: rgba(255, 255, 255, .28);
+  --p-texto: #ffffff;
+  --p-texto-2: #b4b4b0;
+  --p-acento: #ffffff;
+  --p-acento-texto: #000000;
+  --p-finde-texto: #cfcfcb;
+  --p-casilla: rgba(255, 255, 255, .03);
+  --p-casilla-borde: rgba(255, 255, 255, .14);
+  --p-sombra: 0 1px 2px rgba(0, 0, 0, .5);
+  --p-g: hsl(145 50% 58%);
+  --p-o: hsl(42 85% 60%);
+  --p-r: hsl(0 72% 64%);
+  --p-radio: 8px;
+  --p-acento-panel: var(--p-finde-texto);
+}
+
+html[data-paleta="lima"][data-tema="claro"] {
+  --p-fondo: hsl(268 70% 97%);
+  --p-blob-1: hsl(262 90% 72%);
+  --p-blob-2: hsl(86 95% 60%);
+  --p-blob-3: hsl(285 75% 78%);
+  --p-blob-4: hsl(250 75% 82%);
+  --p-blob-5: hsl(78 90% 78%);
+  --p-blob-6: #ffffff;
+  --p-superficie-2: hsl(262 90% 60% / .12);
+  --p-borde: hsl(265 50% 22% / .10);
+  --p-borde-fuerte: hsl(265 50% 22% / .19);
+  --p-texto: hsl(268 50% 13%);
+  --p-texto-2: hsl(266 32% 42%);
+  --p-acento: hsl(262 85% 48%);
+  --p-acento-texto: hsl(85 100% 92%);
+  --p-finde-texto: hsl(96 75% 28%);
+  --p-casilla-borde: hsl(265 50% 22% / .11);
+  --p-sombra: 0 18px 50px hsl(262 80% 45% / .18);
+  --p-g: hsl(90 85% 36%);
+  --p-o: hsl(262 78% 56%);
+  --p-r: hsl(315 80% 47%);
+  --p-acento-panel: var(--p-acento);
+}
+
+html[data-paleta="lima"][data-tema="oscuro"] {
+  --p-fondo: hsl(262 55% 4%);
+  --p-blob-1: hsl(262 92% 34%);
+  --p-blob-2: hsl(86 100% 30%);
+  --p-blob-3: hsl(272 85% 46%);
+  --p-blob-4: hsl(268 75% 6%);
+  --p-blob-5: hsl(245 45% 8%);
+  --p-blob-6: hsl(84 100% 42%);
+  --p-blob-opacidad: .72;
+  --p-vidrio: hsl(262 45% 8% / .55);
+  --p-vidrio-linea: hsl(265 90% 80% / .16);
+  --p-superficie-2: hsl(265 90% 75% / .14);
+  --p-borde: hsl(265 60% 85% / .11);
+  --p-borde-fuerte: hsl(265 60% 85% / .24);
+  --p-texto: hsl(265 40% 96%);
+  --p-texto-2: hsl(265 30% 76%);
+  --p-acento: hsl(86 100% 52%);
+  --p-acento-texto: hsl(262 60% 8%);
+  --p-finde-texto: hsl(265 100% 84%);
+  --p-casilla: hsl(265 70% 80% / .07);
+  --p-casilla-borde: hsl(265 60% 85% / .13);
+  --p-sombra: 0 18px 50px rgba(0, 0, 0, .55);
+  --p-g: hsl(86 95% 55%);
+  --p-o: hsl(262 100% 73%);
+  --p-r: hsl(312 95% 64%);
+  --p-acento-panel: var(--p-acento);
+}

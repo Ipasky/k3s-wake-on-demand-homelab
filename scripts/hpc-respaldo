@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+# =============================================================================
+# hpc-respaldo: copia de seguridad de los datos del clúster en el disco de Faraday
+#
+#   sudo hpc-respaldo            hace la copia (lo lanza hpc-respaldo.timer)
+#   sudo hpc-respaldo --iniciar  crea el repositorio de restic (UNA vez)
+#   sudo hpc-respaldo --lista    muestra las instantáneas guardadas
+#
+# Ciclo: despertar Faraday (y retenerlo) → volcados consistentes de las SQLite
+#        → restic por SFTP a Faraday → retención y comprobación → soltar Faraday
+#        → /var/lib/hpc-respaldo/estado.json (lo lee el panel).
+#
+# Qué se copia: /etc/hpc-respaldo/fuentes.conf
+# Ajustes:      /etc/default/hpc-respaldo
+# Clave:        /etc/hpc-respaldo/clave   ← SIN ELLA LAS COPIAS NO SE PUEDEN LEER
+# =============================================================================
+set -uo pipefail
+
+[[ $EUID -eq 0 ]] || { echo "hpc-respaldo se ejecuta como root (sudo)" >&2; exit 1; }
+
+# ------------------------------------------------------------------ ajustes
+NODO=faraday
+NODO_IP=@@IP_FARADAY@@
+NODO_USUARIO=faraday
+DESTINO=/srv/respaldo                       # punto de montaje del disco en Faraday
+CLAVE_SSH=/home/raspberrypi/.ssh/id_ed25519
+CONOCIDOS=/home/raspberrypi/.ssh/known_hosts
+RETENCION="--keep-last 10 --keep-weekly 8 --keep-monthly 12 --keep-yearly 3"
+COMPROBAR="2%"                              # parte de los datos que se relee en cada copia
+[[ -f /etc/default/hpc-respaldo ]] && source /etc/default/hpc-respaldo
+
+FUENTES=/etc/hpc-respaldo/fuentes.conf
+export RESTIC_PASSWORD_FILE=/etc/hpc-respaldo/clave
+export RESTIC_REPOSITORY="sftp:${NODO_USUARIO}@${NODO_IP}:${DESTINO}/restic"
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+SSH_OPC=(-i "$CLAVE_SSH" -o UserKnownHostsFile="$CONOCIDOS" -o BatchMode=yes -o ConnectTimeout=10)
+RESTIC=(restic -o "sftp.command=ssh ${SSH_OPC[*]} ${NODO_USUARIO}@${NODO_IP} -s sftp")
+
+ESTADO_DIR=/var/lib/hpc-respaldo
+PREPARADO=/var/backups/hpc-respaldo           # volcados del día (se rehace en cada copia)
+mkdir -p "$ESTADO_DIR" "$PREPARADO"
+INICIO=$(date +%s)
+
+log()  { echo "[$(date '+%H:%M:%S')] $*"; }
+en_nodo() { ssh "${SSH_OPC[@]}" "${NODO_USUARIO}@${NODO_IP}" "$@"; }
+
+estado() {  # estado ok|error mensaje [extra-json]
+  cat > "$ESTADO_DIR/estado.json" <<EOF
+{"estado": "$1", "mensaje": "$2", "fecha": $(date +%s), "duracion": $(( $(date +%s) - INICIO ))${3:+, $3}}
+EOF
+}
+
+# ------------------------------------------------------- órdenes auxiliares
+case "${1:-}" in
+  --iniciar)
+    [[ -s "$RESTIC_PASSWORD_FILE" ]] || { echo "Falta la clave en $RESTIC_PASSWORD_FILE" >&2; exit 1; }
+    en_nodo "mountpoint -q $DESTINO" || { echo "El disco no está montado en $NODO:$DESTINO" >&2; exit 1; }
+    "${RESTIC[@]}" init; exit $? ;;
+  --lista)
+    "${RESTIC[@]}" snapshots; exit $? ;;
+  "") ;;
+  *) echo "uso: hpc-respaldo [--iniciar|--lista]" >&2; exit 2 ;;
+esac
+
+# ------------------------------------------- retener Faraday mientras dure
+HOLD_PREVIO=$(kubectl get node "$NODO" -o jsonpath='{.metadata.labels.power-hold}' 2>/dev/null)
+soltar() {
+  [[ "$HOLD_PREVIO" == "true" ]] && return     # ya estaba retenido a mano: no se toca
+  kubectl label node "$NODO" power-hold- >/dev/null 2>&1 || true
+  kubectl annotate node "$NODO" power/hold-por- >/dev/null 2>&1 || true
+  kubectl annotate --overwrite node "$NODO" "power/last-activity=$(date +%s)" >/dev/null 2>&1 || true
+}
+fallo() { log "ERROR: $1"; estado error "$1"; soltar; exit 1; }
+trap 'soltar' EXIT
+
+log "Despertando $NODO"
+kubectl label --overwrite node "$NODO" power-hold=true >/dev/null 2>&1 || true
+# firma: el panel sabe que la retiene la copia y no deja soltarla a mitad
+[[ "$HOLD_PREVIO" == "true" ]] || kubectl annotate --overwrite node "$NODO" power/hold-por=hpc-respaldo >/dev/null 2>&1 || true
+sudo -u raspberrypi /usr/local/bin/nodo despertar "$NODO" >/dev/null 2>&1 \
+  || ping -c1 -W2 "$NODO_IP" >/dev/null 2>&1 || fallo "no se pudo despertar a $NODO"
+for _ in $(seq 1 30); do en_nodo true 2>/dev/null && break; sleep 4; done
+en_nodo "mountpoint -q $DESTINO" || fallo "el disco de copias no está montado en $NODO:$DESTINO"
+
+# ------------------------------------------------- volcados consistentes
+# Copia un fichero o carpeta: las bases SQLite con .backup (seguro aunque el
+# servicio esté escribiendo); sus -wal/-shm se omiten porque .backup ya los incluye.
+volcar() {  # origen destino
+  local origen=$1 destino=$2
+  if [[ -f "$origen" ]]; then
+    mkdir -p "$(dirname "$destino")"
+    if head -c 16 "$origen" 2>/dev/null | grep -q "SQLite format 3"; then
+      sqlite3 "file:${origen}?mode=ro" ".timeout 20000" ".backup '$destino'" \
+        || { log "  aviso: .backup falló en $origen, se copia tal cual"; cp -a "$origen" "$destino"; }
+    else
+      cp -a "$origen" "$destino"
+    fi
+  elif [[ -d "$origen" ]]; then
+    local f rel
+    while IFS= read -r -d '' f; do
+      rel=${f#"$origen"/}
+      case "$f" in *-wal|*-shm|*-journal) continue ;; esac
+      volcar "$f" "$destino/$rel"
+    done < <(find "$origen" -type f -print0)
+  else
+    log "  aviso: no existe $origen (se omite)"
+  fi
+}
+
+ruta_pvc() {  # namespace/pvc → carpeta en el disco de la Pi
+  local ns=${1%%/*} pvc=${1#*/} pv
+  pv=$(kubectl -n "$ns" get pvc "$pvc" -o jsonpath='{.spec.volumeName}' 2>/dev/null) || return 1
+  [[ -n "$pv" ]] || return 1
+  kubectl get pv "$pv" -o jsonpath='{.spec.hostPath.path}{.spec.local.path}'
+}
+
+log "Preparando volcados en $PREPARADO"
+rm -rf "${PREPARADO:?}"/*
+[[ -f "$FUENTES" ]] || fallo "no existe $FUENTES"
+OMITIDAS=()
+while IFS= read -r linea || [[ -n "$linea" ]]; do
+  linea=${linea%%#*}                          # fuera comentarios, también al final de la línea
+  read -r tipo nombre origen _ <<< "$linea"
+  [[ -z "${tipo:-}" ]] && continue
+  case "$tipo" in
+    pvc)
+      if dir=$(ruta_pvc "$origen") && [[ -d "$dir" ]]; then
+        log "  $nombre  (volumen $origen)"; volcar "$dir" "$PREPARADO/$nombre"
+      else
+        log "  $nombre: el volumen $origen no existe todavía (se omite)"; OMITIDAS+=("$nombre")
+      fi ;;
+    ruta)
+      if [[ -e "$origen" ]]; then log "  $nombre  ($origen)"; volcar "$origen" "$PREPARADO/$nombre"
+      else log "  $nombre: no existe $origen (se omite)"; OMITIDAS+=("$nombre"); fi ;;
+    *) log "  tipo desconocido en fuentes.conf: $tipo" ;;
+  esac
+done < "$FUENTES"
+
+# ---------------------------------------------------------------- restic
+log "Copiando a $NODO con restic"
+SALIDA=$("${RESTIC[@]}" backup "$PREPARADO" --host pi-master --tag hpc --json 2>&1) \
+  || fallo "restic backup: $(echo "$SALIDA" | grep -v '^{' | tail -1)"
+RESUMEN=$(echo "$SALIDA" | grep '"message_type":"summary"' | tail -1)
+ID=$(echo "$RESUMEN" | sed -n 's/.*"snapshot_id":"\([0-9a-f]\{8\}\).*/\1/p')
+NUEVO=$(echo "$RESUMEN" | sed -n 's/.*"data_added":\([0-9]*\).*/\1/p')
+TOTAL=$(echo "$RESUMEN" | sed -n 's/.*"total_bytes_processed":\([0-9]*\).*/\1/p')
+
+log "Aplicando la retención"
+"${RESTIC[@]}" forget --host pi-master --tag hpc $RETENCION --prune >/dev/null 2>&1 \
+  || log "  aviso: la retención falló (la copia sí está hecha)"
+
+log "Comprobando el repositorio ($COMPROBAR de los datos)"
+COMPROBADO=true
+"${RESTIC[@]}" check --read-data-subset="$COMPROBAR" >/dev/null 2>&1 || COMPROBADO=false
+
+INSTANTANEAS=$("${RESTIC[@]}" snapshots --json 2>/dev/null | grep -o '"short_id"' | wc -l)
+OCUPADO=$(en_nodo "du -sb $DESTINO/restic 2>/dev/null | cut -f1" 2>/dev/null || echo 0)
+rm -rf "${PREPARADO:?}"/*
+
+OMIT=$(printf '"%s",' "${OMITIDAS[@]}"); OMIT="[${OMIT%,}]"
+if $COMPROBADO; then
+  estado ok "copia ${ID:-?} hecha" "\"instantanea\": \"${ID}\", \"nuevo\": ${NUEVO:-0}, \"total\": ${TOTAL:-0}, \"ocupado\": ${OCUPADO:-0}, \"instantaneas\": ${INSTANTANEAS}, \"omitidas\": ${OMIT}"
+  log "Hecho: instantánea $ID, $(( ${NUEVO:-0} / 1024 / 1024 )) MB nuevos"
+else
+  estado error "la copia ${ID} se hizo pero la comprobación del repositorio falló" "\"instantanea\": \"${ID}\""
+  log "ATENCIÓN: restic check ha fallado"; exit 1
+fi

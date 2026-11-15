@@ -1,0 +1,223 @@
+# ============================================================================
+# Immich en Mustang: fotos del NAS
+#   Fotos y vídeos: /srv/nas/fotos (HDD 3 TB)
+#   Base de datos y caché de modelos: SSD (/var/lib/immich/...)
+#   Aprendizaje automático con la GTX 1050 Ti (RuntimeClass nvidia)
+#   Acceso: NodePort 30283 → despertador en la Pi (:2283)
+#
+# ANTES DE APLICAR: cambia la contraseña del Secret (abajo).
+# ============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nas
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: immich-db
+  namespace: nas
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: CAMBIA-ESTA-CONTRASENA
+---
+# ----------------------------- Base de datos -----------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-db
+  namespace: nas
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: immich-db }
+  template:
+    metadata:
+      labels: { app: immich-db }
+    spec:
+      nodeSelector: { node-type: gpu }
+      tolerations:
+        - { key: power, operator: Equal, value: ondemand, effect: NoExecute }
+        - { key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute }
+        - { key: node.kubernetes.io/not-ready,   operator: Exists, effect: NoExecute }
+      containers:
+        - name: postgres
+          image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+          env:
+            - { name: POSTGRES_USER, value: immich }
+            - { name: POSTGRES_DB,   value: immich }
+            - { name: POSTGRES_INITDB_ARGS, value: "--data-checksums" }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: immich-db, key: POSTGRES_PASSWORD } }
+          ports: [{ containerPort: 5432 }]
+          # Algunos kernels de Ubuntu (p. ej. 7.0.0-42) dan a los contenedores un perfil de AppArmor
+          # "apilado" que descarta las señales entre hilos: gosu (root → postgres) se queda girando al
+          # 100 % de CPU y PostgreSQL nunca arranca. Sin AppArmor solo en este contenedor, que no está
+          # expuesto. Quitar cuando haya un kernel corregido (Launchpad #2172531).
+          securityContext:
+            appArmorProfile: { type: Unconfined }
+          # "Listo" solo cuando acepta conexiones; si deja de responder ~3 min, se reinicia solo
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "immich", "-d", "immich"] }
+            periodSeconds: 10
+          livenessProbe:
+            exec: { command: ["pg_isready", "-U", "immich", "-d", "immich"] }
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            failureThreshold: 6
+          volumeMounts:
+            - { name: datos, mountPath: /var/lib/postgresql/data }
+            - { name: shm,   mountPath: /dev/shm }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+      volumes:
+        - name: datos
+          hostPath: { path: /var/lib/immich/postgres, type: DirectoryOrCreate }   # SSD
+        - name: shm
+          emptyDir: { medium: Memory, sizeLimit: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-db
+  namespace: nas
+spec:
+  selector: { app: immich-db }
+  ports: [{ port: 5432, targetPort: 5432 }]
+---
+# ----------------------------- Caché (Valkey) -----------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-redis
+  namespace: nas
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: immich-redis }
+  template:
+    metadata:
+      labels: { app: immich-redis }
+    spec:
+      nodeSelector: { node-type: gpu }
+      tolerations:
+        - { key: power, operator: Equal, value: ondemand, effect: NoExecute }
+        - { key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute }
+        - { key: node.kubernetes.io/not-ready,   operator: Exists, effect: NoExecute }
+      containers:
+        - name: valkey
+          image: docker.io/valkey/valkey:9
+          ports: [{ containerPort: 6379 }]
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits:   { memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-redis
+  namespace: nas
+spec:
+  selector: { app: immich-redis }
+  ports: [{ port: 6379, targetPort: 6379 }]
+---
+# ------------------- Aprendizaje automático (GPU) -------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-ml
+  namespace: nas
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: immich-ml }
+  template:
+    metadata:
+      labels: { app: immich-ml }
+    spec:
+      runtimeClassName: nvidia
+      nodeSelector: { node-type: gpu }
+      tolerations:
+        - { key: power, operator: Equal, value: ondemand, effect: NoExecute }
+        - { key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute }
+        - { key: node.kubernetes.io/not-ready,   operator: Exists, effect: NoExecute }
+      containers:
+        - name: ml
+          image: ghcr.io/immich-app/immich-machine-learning:release-cuda
+          ports: [{ containerPort: 3003 }]
+          volumeMounts:
+            - { name: cache, mountPath: /cache }
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+      volumes:
+        - name: cache
+          hostPath: { path: /var/lib/immich/ml-cache, type: DirectoryOrCreate }   # SSD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-ml
+  namespace: nas
+spec:
+  selector: { app: immich-ml }
+  ports: [{ port: 3003, targetPort: 3003 }]
+---
+# ----------------------------- Servidor -----------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-server
+  namespace: nas
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: immich-server }
+  template:
+    metadata:
+      labels: { app: immich-server }
+    spec:
+      nodeSelector: { node-type: gpu }
+      tolerations:
+        - { key: power, operator: Equal, value: ondemand, effect: NoExecute }
+        - { key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute }
+        - { key: node.kubernetes.io/not-ready,   operator: Exists, effect: NoExecute }
+      containers:
+        - name: server
+          image: ghcr.io/immich-app/immich-server:release
+          env:
+            - { name: DB_HOSTNAME,      value: immich-db }
+            - { name: DB_USERNAME,      value: immich }
+            - { name: DB_DATABASE_NAME, value: immich }
+            - name: DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: immich-db, key: POSTGRES_PASSWORD } }
+            - { name: REDIS_HOSTNAME, value: immich-redis }
+            - { name: IMMICH_MACHINE_LEARNING_URL, value: "http://immich-ml:3003" }
+            - { name: TZ, value: Europe/Madrid }
+          ports: [{ containerPort: 2283 }]
+          volumeMounts:
+            - { name: fotos, mountPath: /data }
+          readinessProbe:
+            httpGet: { path: /api/server/ping, port: 2283 }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+      volumes:
+        - name: fotos
+          hostPath: { path: /srv/nas/fotos, type: Directory }                     # HDD 3 TB
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-server
+  namespace: nas
+spec:
+  type: NodePort
+  selector: { app: immich-server }
+  ports:
+    - port: 2283
+      targetPort: 2283
+      nodePort: 30283

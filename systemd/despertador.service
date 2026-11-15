@@ -1,0 +1,17 @@
+[Unit]
+Description=Despertador de servicios bajo demanda
+After=network-online.target k3s.service
+Wants=network-online.target
+
+[Service]
+User=raspberrypi
+Environment=KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+Environment=DESPERTADOR_CONFIG=/etc/despertador/servicios.yaml
+# Credenciales de Beszel y ajustes propios (no se toca en los despliegues)
+EnvironmentFile=-/etc/default/despertador
+ExecStart=/opt/despertador/venv/bin/python /opt/despertador/despertador.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

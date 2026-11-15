@@ -1,0 +1,14 @@
+[Unit]
+Description=Wake-on-LAN limpio al apagar (evita que el nodo se reencienda solo)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/rearmar-wol
+# Al apagar: se detiene antes de que caiga la red y deja WoL recién armado, sin avisos pendientes
+ExecStop=/usr/local/sbin/rearmar-wol apagando
+
+[Install]
+WantedBy=multi-user.target

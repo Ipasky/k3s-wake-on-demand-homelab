@@ -1,0 +1,58 @@
+# ============================================================================
+# FileBrowser Quantum por HTTPS y detrás de Authelia: https://archivos.@@DOMINIO@@
+#
+#   Traefik → despertador en la Pi (:8082) → FileBrowser en Mustang (NodePort 30081)
+#   El despertador sigue en medio, así que entrar desde el panel despierta Mustang.
+#   FileBrowser en modo "proxy" (config.yaml de filebrowser.yaml): se fía de Remote-User
+#   (sin contraseña propia). Por eso el 8082 de la Pi queda CERRADO a todo lo que no
+#   sea el clúster: si alguien llegara directo, podría inventarse esa cabecera.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: archivos-pi
+  namespace: nas
+spec:
+  ports:
+    - { name: http, port: 8082, targetPort: 8082, protocol: TCP }
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: archivos-pi-1
+  namespace: nas
+  labels:
+    kubernetes.io/service-name: archivos-pi
+addressType: IPv4
+ports:
+  - { name: http, port: 8082, protocol: TCP }
+endpoints:
+  - addresses: [@@IP_PI@@]          # el despertador, en la propia Pi
+    conditions: { ready: true }
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: authelia
+  namespace: nas
+spec:
+  forwardAuth:
+    address: http://authelia.auth.svc.cluster.local:9091/api/authz/forward-auth
+    trustForwardHeader: true
+    authResponseHeaders: [Remote-User, Remote-Groups, Remote-Email, Remote-Name]
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: archivos
+  namespace: nas
+spec:
+  entryPoints: [websecure]
+  routes:
+    - match: Host(`archivos.@@DOMINIO@@`)
+      kind: Rule
+      middlewares:
+        - name: authelia
+      services:
+        - { name: archivos-pi, port: 8082 }
+  tls: {}

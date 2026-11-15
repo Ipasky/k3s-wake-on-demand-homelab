@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+#
+# recoger-smart: trae a la Pi el resumen SMART de cada nodo (si está despierto)
+# para que el despertador pueda publicarlo en /api/smart (panel Homepage).
+# Se ejecuta como raspberrypi.
+#
+set -uo pipefail
+DEST=/var/lib/revisar-smart/remotos
+declare -A NODOS=( [faraday]="@@IP_FARADAY@@" [mustang]="@@IP_MUSTANG@@" )
+mkdir -p "$DEST"
+for n in "${!NODOS[@]}"; do
+  ip="${NODOS[$n]}"
+  if ping -c1 -W1 "$ip" >/dev/null 2>&1; then
+    if scp -q -o BatchMode=yes -o ConnectTimeout=5 \
+        "${n}@${ip}:/var/lib/revisar-smart/resumen.json" "$DEST/${n}.json" 2>/dev/null; then
+      echo "[$n] resumen actualizado"
+    else
+      echo "[$n] sin resumen (¿revisar-smart no se ha ejecutado aún?)"
+    fi
+  else
+    echo "[$n] dormido, se conserva el resumen anterior"
+  fi
+done

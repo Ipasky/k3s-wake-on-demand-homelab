@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+#
+# nodo-controlador: enciende y apaga los nodos bajo demanda según la carga del clúster
+#
+# Reglas:
+#  · DESPERTAR: hay un pod Pending que necesita un nodo dormido y además:
+#      - es de un Job (o lleva la anotación power/wake: "true"),
+#      - tolera el taint power=ondemand,
+#      - su nodeSelector encaja con las etiquetas del nodo (o tiene spec.nodeName).
+#  · DORMIR: el nodo lleva IDLE_MIN minutos ocioso:
+#      - sin pods de Jobs (ni con power/wake: "true") en marcha,
+#      - sin la etiqueta power-hold=true (si lleva power/hold-hasta, caduca a esa hora),
+#      - sin actividad reciente (anotación power/last-activity, epoch en segundos),
+#      - sin sesiones SSH abiertas.
+#
+# Solo gestiona los nodos con la etiqueta power-mode=ondemand.
+# Usa /usr/local/bin/nodo para despertar/dormir. Convención: usuario SSH = nombre del nodo.
+#
+set -uo pipefail
+
+export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
+INTERVAL="${INTERVAL:-30}"        # segundos entre revisiones
+IDLE_MIN="${IDLE_MIN:-15}"        # minutos ocioso antes de dormir
+WAKE_GRACE="${WAKE_GRACE:-300}"   # segundos de margen tras despertar (ni reintenta ni duerme)
+DRY_RUN="${DRY_RUN:-0}"           # 1 = solo anuncia lo que haría
+NODO="${NODO:-/usr/local/bin/nodo}"
+IP_MASTER="${IP_MASTER:-@@IP_PI@@}"   # se excluye al contar sesiones SSH (somos nosotros)
+ESTADO="${ESTADO:-/run/nodo-controlador/estado.json}"   # lo lee el panel (cuenta atrás y motivos)
+SSH_OPTS=(-n -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new)
+
+log(){ echo "$*"; }               # journald ya añade la fecha
+vivo(){ ping -c1 -W1 "$1" >/dev/null 2>&1; }
+
+declare -A IDLE_SINCE=() WAKING_AT=() LAST_STATE=() INFO=()
+
+# Lo que verá el panel de cada nodo: estado, motivo y cuándo se dormirá (epoch, o null si nada lo prevé)
+info(){ INFO[$1]=$(jq -cn --arg e "$2" --arg m "$3" --argjson a "${4:-null}" '{estado: $e, motivo: $m, duerme_a: $a}'); }
+guardar_estado(){
+  local dir; dir=$(dirname "$ESTADO")
+  [[ -d "$dir" && -w "$dir" ]] || return 0
+  { printf '{"revisado":%s,"intervalo":%s,"reposo_min":%s,"nodos":{' "$now" "$INTERVAL" "$IDLE_MIN"
+    local primero=1 k
+    for k in "${!INFO[@]}"; do
+      (( primero )) || printf ','; primero=0
+      printf '"%s":%s' "$k" "${INFO[$k]}"
+    done
+    printf '}}\n'; } > "$ESTADO.tmp" && mv -f "$ESTADO.tmp" "$ESTADO"
+}
+
+# Anota el estado de un nodo solo cuando cambia (para no llenar el log)
+estado(){ if [[ "${LAST_STATE[$1]:-}" != "$2" ]]; then LAST_STATE[$1]="$2"; log "[$1] $2"; fi; }
+
+# ¿El pod cuenta como carga gestionada? (Jobs, o pods marcados con power/wake: "true")
+JQ_DEF='def gestionado:
+  ([.metadata.ownerReferences[]? | select(.kind == "Job")] | length > 0)
+  or (.metadata.annotations["power/wake"] == "true");'
+
+JQ_WANTED="$JQ_DEF"'
+  [ .items[]
+    | select(.status.phase == "Pending") | select(gestionado)
+    | select(
+        ((.spec.nodeName // "") == $n)
+        or ( ((.spec.nodeName // "") == "")
+             and ([.status.conditions[]? | select(.type == "PodScheduled" and .status == "False")] | length > 0)
+             and ((.spec.nodeSelector // {}) as $s
+                  | ($s | length) > 0 and all($s | to_entries[]; $L[.key] == .value))
+             and ([.spec.tolerations[]?
+                   | select(((.key // "") == "power")
+                            or (((.key // "") == "") and .operator == "Exists"))] | length > 0) ) )
+  ] | length'
+
+JQ_BUSY="$JQ_DEF"'
+  [ .items[] | select(.spec.nodeName == $n)
+    | select(.status.phase == "Running" or .status.phase == "Pending")
+    | select(gestionado) ] | length'
+
+JQ_NODES='.items[] | [ .metadata.name,
+    ((.status.addresses // [])[] | select(.type == "InternalIP") | .address),
+    (.metadata.labels["power-hold"] // "false"),
+    (.metadata.annotations["power/last-activity"] // "0"),
+    (.metadata.annotations["power/hold-hasta"] // "0"),
+    (.metadata.labels | tojson) ] | @tsv'
+
+log "Controlador iniciado: revisión cada ${INTERVAL}s, reposo tras ${IDLE_MIN} min, DRY_RUN=${DRY_RUN}"
+
+while true; do
+  now=$(date +%s)
+  if ! nodes_json=$(kubectl get nodes -l power-mode=ondemand -o json 2>/dev/null) \
+     || ! pods_json=$(kubectl get pods -A -o json 2>/dev/null); then
+    log "AVISO: no se pudo consultar la API de Kubernetes; reintento en ${INTERVAL}s"
+    sleep "$INTERVAL"; continue
+  fi
+
+  while IFS=$'\t' read -r n ip hold lastact hasta labels <&3; do
+    [[ -z "$n" || -z "$ip" ]] && continue
+    [[ "$lastact" =~ ^[0-9]+$ ]] || lastact=0
+    [[ "$hasta" =~ ^[0-9]+$ ]] || hasta=0
+
+    # Retención con caducidad (puesta desde el panel: "mantener encendido 1 h")
+    if [[ "$hold" == "true" ]] && (( hasta > 0 && now >= hasta )); then
+      log "[$n] la retención ha caducado: se quita power-hold"
+      kubectl label node "$n" power-hold- >/dev/null 2>&1
+      kubectl annotate node "$n" power/hold-hasta- power/hold-por- >/dev/null 2>&1
+      kubectl annotate --overwrite node "$n" "power/last-activity=$now" >/dev/null 2>&1   # 15 min de margen
+      hold=false; lastact=$now
+    fi
+
+    wanted=$(jq --arg n "$n" --argjson L "$labels" "$JQ_WANTED" <<<"$pods_json")
+    busy=$(jq --arg n "$n" "$JQ_BUSY" <<<"$pods_json")
+    if vivo "$ip"; then awake=1; else awake=0; fi
+
+    # ---------- DESPERTAR ----------
+    if (( wanted > 0 )); then
+      IDLE_SINCE[$n]=$now
+      (( awake )) && estado "$n" "ocupado: ${wanted} trabajo(s) arrancando"
+      if (( awake )); then info "$n" ocupado "${wanted} trabajo(s) arrancando"
+      else info "$n" despertando "${wanted} trabajo(s) esperan este nodo"; fi
+      if (( ! awake )) && (( now - ${WAKING_AT[$n]:-0} > WAKE_GRACE )); then
+        WAKING_AT[$n]=$now
+        estado "$n" "despertando: ${wanted} trabajo(s) esperan este nodo"
+        if [[ "$DRY_RUN" == 1 ]]; then
+          log "[$n] (DRY-RUN) nodo despertar $n"
+        else
+          "$NODO" despertar "$n" </dev/null &
+        fi
+      fi
+      continue
+    fi
+
+    if (( ! awake )); then
+      unset "IDLE_SINCE[$n]"
+      (( now - ${WAKING_AT[$n]:-0} > WAKE_GRACE )) && estado "$n" "dormido"
+      if (( now - ${WAKING_AT[$n]:-0} > WAKE_GRACE )); then info "$n" dormido ""
+      else info "$n" despertando "arrancando"; fi
+      continue
+    fi
+
+    # ---------- ¿OCUPADO? ----------
+    reason=""
+    [[ "$hold" == "true" ]]                       && reason="power-hold=true"
+    (( now - lastact < IDLE_MIN * 60 ))           && reason="actividad reciente"
+    (( now - ${WAKING_AT[$n]:-0} < WAKE_GRACE ))  && reason="recién despertado"
+    (( busy > 0 ))                                && reason="${busy} trabajo(s) en marcha"
+    if [[ -n "$reason" ]]; then
+      IDLE_SINCE[$n]=$now
+      estado "$n" "ocupado: ${reason}"
+      # Para el panel: todos los motivos y, si solo son temporales, cuándo se dormirá
+      motivos=()
+      [[ "$hold" == "true" ]]                      && motivos+=("power-hold=true")
+      (( busy > 0 ))                               && motivos+=("${busy} trabajo(s) en marcha")
+      (( now - lastact < IDLE_MIN * 60 ))          && motivos+=("actividad reciente")
+      (( now - ${WAKING_AT[$n]:-0} < WAKE_GRACE )) && motivos+=("recién despertado")
+      if [[ "$hold" == "true" ]] || (( busy > 0 )); then
+        info "$n" retenido "$(IFS=,; echo "${motivos[*]}" | sed 's/,/ · /g')"
+      else
+        libre=$(( lastact + IDLE_MIN * 60 )); gracia=$(( ${WAKING_AT[$n]:-0} + WAKE_GRACE ))
+        (( gracia > libre )) && libre=$gracia
+        info "$n" ocupado "$(IFS=,; echo "${motivos[*]}" | sed 's/,/ · /g')" $(( libre + IDLE_MIN * 60 ))
+      fi
+      continue
+    fi
+
+    since=${IDLE_SINCE[$n]:-$now}; IDLE_SINCE[$n]=$since
+    idle=$(( now - since ))
+    if (( idle < IDLE_MIN * 60 )); then
+      estado "$n" "ocioso: se dormirá a las $(date -d "@$(( since + IDLE_MIN * 60 ))" +%H:%M) si sigue sin uso"
+      info "$n" ocioso "sin uso" $(( since + IDLE_MIN * 60 ))
+      continue
+    fi
+
+    # ---------- DORMIR (última comprobación: sesiones SSH abiertas) ----------
+    # 'who' no sirve en systemd reciente (ya no mantiene utmp): se cuentan las conexiones
+    # SSH establecidas, descartando la que abre este mismo controlador desde la Pi.
+    sessions=$(ssh "${SSH_OPTS[@]}" "${n}@${ip}" \
+      "ss -tHn state established '( sport = :22 )' | grep -vc '${IP_MASTER}'; true" 2>/dev/null | tail -1) \
+      || sessions="?"
+    [[ "$sessions" =~ ^[0-9]+$ ]] || sessions="?"
+    if [[ "$sessions" != "0" ]]; then
+      if [[ "$sessions" == "?" ]]; then
+        estado "$n" "ocioso, pero no puedo comprobar sesiones SSH (¿clave?); no lo duermo"
+        info "$n" retenido "no se pueden comprobar las sesiones SSH"
+      else
+        estado "$n" "ocioso, pero con ${sessions} sesión(es) SSH abierta(s); espero"
+        info "$n" retenido "${sessions} sesión(es) SSH abierta(s)"
+      fi
+      IDLE_SINCE[$n]=$now; continue
+    fi
+
+    estado "$n" "durmiendo: ocioso desde hace $(( idle / 60 )) min"
+    info "$n" apagando "ocioso desde hace $(( idle / 60 )) min"; guardar_estado
+    if [[ "$DRY_RUN" == 1 ]]; then
+      log "[$n] (DRY-RUN) nodo dormir $n -f"
+    else
+      "$NODO" dormir "$n" -f </dev/null
+    fi
+    unset "IDLE_SINCE[$n]"
+  done 3< <(jq -r "$JQ_NODES" <<<"$nodes_json")
+
+  guardar_estado
+  sleep "$INTERVAL"
+done

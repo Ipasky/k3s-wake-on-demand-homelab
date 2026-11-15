@@ -1,0 +1,11 @@
+[Unit]
+Description=Copia de seguridad del clúster en el disco de Faraday (restic)
+After=network-online.target k3s.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/hpc-respaldo
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=2h

@@ -1,0 +1,38 @@
+# ============================================================================
+# Ajustes del Traefik que trae K3s (se aplican sin reinstalar nada)
+#
+#   1. Registro de accesos en JSON: lo que leerá CrowdSec para detectar ataques
+#      web (inyecciones, rastreo de rutas, fuerza bruta...).
+#   2. externalTrafficPolicy: Local  ->  Traefik ve la IP REAL de quien se
+#      conecta, en vez de una IP interna del clúster. Sin esto, CrowdSec
+#      acabaría "bloqueando" al propio balanceador.
+#   3. Sin límite de tiempo para recibir una petición: Traefik corta a los 60 s por
+#      defecto, y subir un vídeo grande a Immich (https://fotos…) tarda más.
+#
+# Para deshacerlo: kubectl delete -f traefik-config.yaml
+# ============================================================================
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    logs:
+      access:
+        enabled: true
+        format: json
+        fields:
+          headers:
+            defaultmode: drop          # no guardar cabeceras (cookies, tokens...)
+            names:
+              User-Agent: keep         # útil para detectar escáneres
+    service:
+      spec:
+        externalTrafficPolicy: Local
+    ports:
+      websecure:
+        transport:
+          respondingTimeouts:
+            readTimeout: 0             # subidas largas (vídeos)
+            idleTimeout: 600s
